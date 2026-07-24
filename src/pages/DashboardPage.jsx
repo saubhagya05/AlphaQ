@@ -35,7 +35,7 @@ export default function DashboardPage() {
             <ProjectCard
               key={project.id}
               project={project}
-              onOpen={() => navigate(ROUTES.STUDIO)}
+              onOpen={() => navigate(ROUTES.ideaboard(project.id))}
             />
           ))}
           <button

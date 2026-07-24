@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react'
-import { Mic, ArrowLeft } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Mic, PenLine, Home, Sparkles, Menu, Maximize2, Languages, ArrowLeft, Send } from 'lucide-react'
+import AILoadingScreen from './AILoadingScreen.jsx'
 
 // Colorful multi-point Gemini-style sparkle icon
 function GeminiSparkle({ className = '' }) {
@@ -21,39 +23,78 @@ function GeminiSparkle({ className = '' }) {
   )
 }
 
-export default function App() {
-  const [currentView, setCurrentView] = useState('home') // 'home' | 'mic' | 'write'
-  const [focusMode, setFocusMode] = useState(false)
+// Fullscreen API helpers (no-ops if unsupported / rejected)
+const requestFullscreen = () => {
+  const el = document.documentElement
+  const fn = el.requestFullscreen || el.webkitRequestFullscreen
+  if (fn) Promise.resolve(fn.call(el)).catch(() => {})
+}
+const exitFullscreen = () => {
+  if (!document.fullscreenElement && !document.webkitFullscreenElement) return
+  const fn = document.exitFullscreen || document.webkitExitFullscreen
+  if (fn) Promise.resolve(fn.call(document)).catch(() => {})
+}
 
-  // Escape exits focus mode
+export default function App() {
+  // ---- Central state ----
+  const [currentView, setCurrentView] = useState('home') // 'home' | 'mic' | 'write'
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [storyOutput, setStoryOutput] = useState(null)
+  const [inputText, setInputText] = useState('')
+  const [showBanner, setShowBanner] = useState(false) // kept for potential future use
+
+  // Keep isFullscreen in sync with the actual browser state.
   useEffect(() => {
-    if (!focusMode) return
-    const onKey = (e) => {
-      if (e.key === 'Escape') setFocusMode(false)
+    const onChange = () =>
+      setIsFullscreen(
+        Boolean(document.fullscreenElement || document.webkitFullscreenElement)
+      )
+    document.addEventListener('fullscreenchange', onChange)
+    document.addEventListener('webkitfullscreenchange', onChange)
+    return () => {
+      document.removeEventListener('fullscreenchange', onChange)
+      document.removeEventListener('webkitfullscreenchange', onChange)
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [focusMode])
+  }, [])
+
+  // ---- Write flow handlers ----
+  const handleSend = () => {
+    setStoryOutput(null)
+    setIsLoading(true)
+    // Mock latency = 2 full carton loops (CYCLE 8s x 2). Later: end when the
+    // real API response arrives instead of this fixed timeout.
+    setTimeout(() => {
+      setIsLoading(false)
+      setStoryOutput(MOCK_STORY(inputText))
+    }, 16000)
+  }
+
+  const handleReset = () => {
+    setIsLoading(false)
+    setStoryOutput(null)
+    setInputText('')
+  }
 
   const goTo = (view) => {
-    setFocusMode(false)
+    if (view === 'write') {
+      requestFullscreen()
+    } else {
+      exitFullscreen()
+      handleReset()
+    }
     setCurrentView(view)
   }
 
-  const navHidden = focusMode
+  // Navbar always visible — even in fullscreen write mode
+  const navHidden = false
+
 
   return (
-    <div className="relative min-h-screen w-full bg-black text-white overflow-hidden">
-      {/* Focus-mode banner */}
-      {focusMode && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#7f0a1c] via-[#E61C38] to-[#7f0a1c] text-white text-center text-sm font-medium tracking-wide py-2 px-4 shadow-[0_2px_20px_rgba(230,28,56,0.35)]">
-          Press Escape to exit focus mode. <span className="mx-2 text-white/50">|</span> Maximized concentration, better results.
-        </div>
-      )}
 
+    <div className="relative min-h-screen w-full bg-black text-white overflow-hidden">
       {/* Top navbar */}
-      {!navHidden && (
-        <header className="fixed top-0 left-0 right-0 z-40 h-16 flex items-center justify-between px-6 border-b border-white/5 bg-black/80 backdrop-blur">
+      <header className="fixed top-0 left-0 right-0 z-40 h-16 flex items-center justify-between px-6 border-b border-white/5 bg-black/80 backdrop-blur">
           <div className="flex items-center gap-2 select-none">
             <span className="text-[#E61C38] font-extrabold tracking-tight text-lg">Pocket FM</span>
             <span className="text-white/20">|</span>
@@ -62,7 +103,6 @@ export default function App() {
           <button
             type="button"
             onClick={() => {
-              // Placeholder: wire to real dashboard route when available
               if (currentView !== 'home') goTo('home')
               else if (window.history.length > 1) window.history.back()
             }}
@@ -71,21 +111,153 @@ export default function App() {
             <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
             Dashboard
           </button>
-        </header>
-      )}
+      </header>
 
       {/* Main content */}
-      <main
-        className={`relative min-h-screen transition-all duration-300 ${
-          navHidden ? 'pt-10' : 'pt-16'
-        }`}
-      >
+      <main className="relative min-h-screen pt-16">
         {currentView === 'home' && <HomeView onSelect={goTo} />}
         {currentView === 'mic' && <MicView />}
         {currentView === 'write' && (
-          <WriteView focusMode={focusMode} setFocusMode={setFocusMode} />
+          <WriteView
+            isFullscreen={isFullscreen}
+            isLoading={isLoading}
+            storyOutput={storyOutput}
+            inputText={inputText}
+            setInputText={setInputText}
+            onSend={handleSend}
+            onReset={handleReset}
+          />
         )}
       </main>
+    </div>
+  )
+}
+
+// Mock AI script generator — replace with a real API response.
+const MOCK_STORY = (idea) => {
+  const seed = idea.trim() || 'a lone traveller returning to their village in Bharat'
+  return `TITLE: Echoes of Solitude
+
+LOGLINE
+A story about ${seed} — where silence becomes the loudest voice.
+
+[SCENE 1 — DUSK / OPEN COURTYARD]
+The wind carries dust across an empty courtyard. A single lamp flickers.
+NARRATOR (V.O.): "Some stories are not spoken. They are felt in the quiet."
+
+[SCENE 2 — INT. MEMORY]
+Fragments of the past surface — a promise made, a road not taken.
+The protagonist confronts the weight of everything left unsaid.
+
+[CLIMAX]
+In solitude, clarity arrives. The choice is made — not out of fear, but resolve.
+
+— Generated by Pocket FM Creator Studio · adjust tone, characters & climax as needed.`
+}
+
+const PLACEHOLDERS = {
+  en: 'Express Yourself in Solitude...',
+  hi: 'अपने मन को एकांत में रखें...',
+}
+
+function WriteView({ isFullscreen, isLoading, storyOutput, inputText, setInputText, onSend, onReset }) {
+  const [lang, setLang] = useState('en')
+
+  return (
+    <div
+      className="relative flex h-screen w-full flex-col bg-[#0a0a0a]"
+      style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 100%, rgba(100,0,15,0.18), #0a0a0a 70%)' }}
+    >
+      <AnimatePresence mode="wait">
+        {isLoading ? (
+          /* ---- Loading ---- */
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            className="flex h-full w-full items-center justify-center"
+          >
+            <AILoadingScreen />
+          </motion.div>
+        ) : storyOutput ? (
+          /* ---- Output ---- */
+          <motion.div
+            key="output"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="flex flex-1 flex-col overflow-auto p-10 md:p-20"
+          >
+            <div className="mb-6 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-[#E61C38]">
+                <GeminiSparkle className="w-4 h-4" />
+                Your Generated Script
+              </div>
+              <button
+                onClick={onReset}
+                className="rounded-full border border-white/15 px-4 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-[#E61C38]/60 hover:text-[#E61C38]"
+              >
+                Start Over
+              </button>
+            </div>
+            <pre className="whitespace-pre-wrap font-mono text-base leading-8 text-gray-200 flex-1">
+              {storyOutput}
+            </pre>
+          </motion.div>
+        ) : (
+          /* ---- Input (iA Writer-style) ---- */
+          <motion.div
+            key="input"
+            initial={{ opacity: 0, scale: 0.99 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.99 }}
+            transition={{ duration: 0.35, ease: 'easeInOut' }}
+            className="flex flex-1 flex-col"
+          >
+            {/* Giant focused textarea */}
+            <div
+              className="relative mx-auto my-8 flex flex-1 w-full max-w-5xl flex-col rounded-2xl"
+              style={{
+                border: '1.5px solid rgba(180,20,40,0.25)',
+                boxShadow: '0 0 60px rgba(180,20,40,0.12), inset 0 0 40px rgba(0,0,0,0.4)',
+                background: '#0e0e0e',
+              }}
+            >
+              <textarea
+                autoFocus
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder={PLACEHOLDERS[lang]}
+                className="flex-1 w-full resize-none bg-transparent px-10 pt-10 pb-4 text-white text-xl md:text-2xl leading-9 tracking-wide outline-none placeholder:text-white/40"
+                style={{ minHeight: 'calc(100vh - 240px)', fontFamily: "'JetBrains Mono', monospace", fontWeight: 300 }}
+              />
+
+              {/* Bottom bar inside the box */}
+              <div className="flex items-center justify-between px-8 py-4 border-t border-white/5">
+                <button
+                  onClick={() => setLang(l => l === 'en' ? 'hi' : 'en')}
+                  className="flex items-center gap-1.5 text-white/25 hover:text-white/70 transition-colors text-sm"
+                >
+                  <Languages size={15} strokeWidth={1.5} />
+                  <span className="font-medium">{lang === 'en' ? 'EN' : 'हिं'}</span>
+                </button>
+
+                <button
+                  onClick={onSend}
+                  disabled={!inputText.trim()}
+                  className="flex items-center gap-2.5 rounded-full bg-[#E61C38] hover:bg-[#ff2244] px-6 py-2.5 text-sm font-semibold text-white transition-all shadow-[0_0_24px_rgba(230,28,56,0.35)] disabled:opacity-25 disabled:shadow-none active:scale-95"
+                >
+                  <GeminiSparkle className="w-3.5 h-3.5" />
+                  Send to AI
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -260,56 +432,3 @@ function MicView() {
   )
 }
 
-/* ---------------- Page 3: Write ---------------- */
-function WriteView({ focusMode, setFocusMode }) {
-  const [text, setText] = useState('')
-
-  return (
-    <section className="relative flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-6 py-12">
-      <div className="w-full max-w-2xl">
-        <div className="text-center mb-10">
-          <h2 className="text-2xl md:text-3xl font-bold text-white">
-            Express Yourself in Solitude.
-          </h2>
-          <h2 className="mt-2 text-2xl md:text-3xl font-bold text-white">
-            अपने मन को एकांत में रखें।
-          </h2>
-        </div>
-
-        {!focusMode && (
-          <div className="mb-6 flex justify-center">
-            <button
-              onClick={() => setFocusMode(true)}
-              className="rounded-full border border-[#E61C38]/40 px-5 py-2 text-sm font-medium text-[#E61C38] transition-colors hover:bg-[#E61C38]/10"
-            >
-              Enter Focus Mode
-            </button>
-          </div>
-        )}
-
-        {/* Input container */}
-        <div className="rounded-2xl border border-red-900/40 bg-[#121212] p-4 shadow-[0_0_40px_rgba(230,28,56,0.05)]">
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="मेरे नए Pocket FM कहानी के लिए विचार हैं..."
-            className="h-48 w-full resize-none bg-transparent text-base text-white placeholder:text-gray-600 outline-none"
-          />
-          <div className="mt-2 flex items-center justify-between">
-            <button
-              className="rounded-full p-2 text-gray-500 transition-colors hover:text-[#E61C38]"
-              title="Voice input"
-            >
-              <Mic className="w-5 h-5" strokeWidth={1.5} />
-            </button>
-
-            <button className="flex items-center gap-2 rounded-full bg-white text-black px-5 py-2 text-sm font-semibold transition-all hover:bg-gray-200 active:scale-[0.98]">
-              <GeminiSparkle className="w-4 h-4" />
-              Send to AI
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}

@@ -4,7 +4,7 @@ import { ROUTES } from '../constants/routes'
 import { useApp } from '../context/AppContext'
 
 export default function DashboardPage() {
-  const { projects, addProject } = useApp()
+  const { projects } = useApp()
   const navigate = useNavigate()
 
   return (
@@ -40,7 +40,7 @@ export default function DashboardPage() {
           ))}
           <button
             type="button"
-            onClick={addProject}
+            onClick={() => navigate(ROUTES.STUDIO)}
             className="group flex min-h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/[0.015] p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:border-[#E61C38]/65 hover:bg-[#E61C38]/[0.04] hover:shadow-[0_18px_45px_rgba(230,28,56,0.09)]"
           >
             <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/15 text-white/45 transition-all duration-300 group-hover:border-[#E61C38]/60 group-hover:bg-[#E61C38]/10 group-hover:text-[#E61C38]">

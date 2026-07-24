@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Mic, PenLine, Home, Sparkles, Menu } from 'lucide-react'
+import { Mic, ArrowLeft } from 'lucide-react'
 
 // Colorful multi-point Gemini-style sparkle icon
 function GeminiSparkle({ className = '' }) {
@@ -24,7 +24,6 @@ function GeminiSparkle({ className = '' }) {
 export default function App() {
   const [currentView, setCurrentView] = useState('home') // 'home' | 'mic' | 'write'
   const [focusMode, setFocusMode] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   // Escape exits focus mode
   useEffect(() => {
@@ -36,7 +35,6 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [focusMode])
 
-  // Leaving the write view should always cancel focus mode
   const goTo = (view) => {
     setFocusMode(false)
     setCurrentView(view)
@@ -56,67 +54,31 @@ export default function App() {
       {/* Top navbar */}
       {!navHidden && (
         <header className="fixed top-0 left-0 right-0 z-40 h-16 flex items-center justify-between px-6 border-b border-white/5 bg-black/80 backdrop-blur">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSidebarOpen((s) => !s)}
-              className="p-2 rounded-md text-gray-400 hover:text-white hover:bg-white/5 transition-colors md:hidden"
-              aria-label="Toggle sidebar"
-            >
-              <Menu className="w-5 h-5" strokeWidth={1.5} />
-            </button>
-            <div className="flex items-center gap-2 select-none">
-              <span className="text-[#E61C38] font-extrabold tracking-tight text-lg">Pocket FM</span>
-              <span className="text-white/20">|</span>
-              <span className="text-white font-medium tracking-tight text-lg">Creator Studio</span>
-            </div>
+          <div className="flex items-center gap-2 select-none">
+            <span className="text-[#E61C38] font-extrabold tracking-tight text-lg">Pocket FM</span>
+            <span className="text-white/20">|</span>
+            <span className="text-white font-medium tracking-tight text-lg">Creator Studio</span>
           </div>
           <button
-            onClick={() => goTo('home')}
-            className="text-sm text-gray-400 hover:text-white transition-colors"
+            type="button"
+            onClick={() => {
+              // Placeholder: wire to real dashboard route when available
+              if (currentView !== 'home') goTo('home')
+              else if (window.history.length > 1) window.history.back()
+            }}
+            className="inline-flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-[#E61C38]"
           >
-            Home
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Dashboard
           </button>
         </header>
-      )}
-
-      {/* Sidebar */}
-      {!navHidden && (
-        <aside
-          className={`fixed top-16 left-0 z-30 h-[calc(100vh-4rem)] border-r border-white/5 bg-black/90 backdrop-blur transition-all duration-300 ${
-            sidebarOpen ? 'w-64' : 'w-20'
-          }`}
-        >
-          <nav className="flex flex-col gap-2 p-3 pt-6">
-            <NavItem
-              icon={<Home className="w-5 h-5" strokeWidth={1.5} />}
-              label="Home"
-              active={currentView === 'home'}
-              expanded={sidebarOpen}
-              onClick={() => goTo('home')}
-            />
-            <NavItem
-              icon={<Mic className="w-5 h-5" strokeWidth={1.5} />}
-              label="Speak"
-              active={currentView === 'mic'}
-              expanded={sidebarOpen}
-              onClick={() => goTo('mic')}
-            />
-            <NavItem
-              icon={<PenLine className="w-5 h-5" strokeWidth={1.5} />}
-              label="Write"
-              active={currentView === 'write'}
-              expanded={sidebarOpen}
-              onClick={() => goTo('write')}
-            />
-          </nav>
-        </aside>
       )}
 
       {/* Main content */}
       <main
         className={`relative min-h-screen transition-all duration-300 ${
           navHidden ? 'pt-10' : 'pt-16'
-        } ${navHidden ? '' : sidebarOpen ? 'md:pl-64' : 'md:pl-20'}`}
+        }`}
       >
         {currentView === 'home' && <HomeView onSelect={goTo} />}
         {currentView === 'mic' && <MicView />}
@@ -128,49 +90,131 @@ export default function App() {
   )
 }
 
-function NavItem({ icon, label, active, expanded, onClick }) {
+/* ---------------- Custom home icons (match reference) ---------------- */
+function VintageMicIcon({ className = "" }) {
   return (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-3 rounded-lg px-3 py-3 transition-colors ${
-        active
-          ? 'bg-[#E61C38]/10 text-[#E61C38]'
-          : 'text-gray-400 hover:text-white hover:bg-white/5'
-      } ${expanded ? 'justify-start' : 'justify-center'}`}
-      title={label}
+    <svg
+      viewBox="0 0 200 240"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
     >
-      {icon}
-      {expanded && <span className="text-sm font-medium">{label}</span>}
-    </button>
-  )
+      {/* Microphone capsule */}
+      <rect x="60" y="20" width="80" height="140" rx="40" />
+
+      {/* Top grille */}
+      <line x1="82" y1="32" x2="82" y2="48" />
+      <line x1="100" y1="28" x2="100" y2="48" />
+      <line x1="118" y1="32" x2="118" y2="48" />
+
+      {/* Left grille */}
+      <line x1="60" y1="70" x2="82" y2="70" />
+      <line x1="60" y1="90" x2="82" y2="90" />
+      <line x1="60" y1="110" x2="82" y2="110" />
+
+      {/* Right grille */}
+      <line x1="118" y1="70" x2="140" y2="70" />
+      <line x1="118" y1="90" x2="140" y2="90" />
+      <line x1="118" y1="110" x2="140" y2="110" />
+
+      {/* Stand */}
+      <path d="M45 86v42a55 55 0 0 0 110 0V86" />
+
+      {/* Stem */}
+      <line x1="100" y1="183" x2="100" y2="210" />
+      <line x1="92" y1="183" x2="92" y2="210" />
+
+      {/* Base */}
+      <rect x="72" y="214" width="56" height="12" rx="6" />
+    </svg>
+  );
+}
+
+function WriteStoryIcon({ className = "" }) {
+  return (
+    <svg
+      viewBox="0 0 200 200"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      {/* Paper */}
+      <path d="
+        M42 20
+        H122
+        Q132 20 132 30
+        V145
+        L108 170
+        H42
+        Q30 170 30 158
+        V32
+        Q30 20 42 20
+      " />
+
+      {/* Folded corner */}
+      <path d="M108 170V146H132" />
+
+      {/* Text lines */}
+      <line x1="52" y1="50" x2="105" y2="50" />
+      <line x1="52" y1="68" x2="98" y2="68" />
+      <line x1="52" y1="86" x2="92" y2="86" />
+      <line x1="52" y1="104" x2="84" y2="104" />
+      <path d="M54 128c4-5 8 5 12 0 4-5 8 5 12 0" />
+
+      {/* Pencil Body */}
+      <g transform="rotate(-42 128 82)">
+        <rect
+          x="118"
+          y="38"
+          width="24"
+          height="94"
+          rx="8"
+        />
+
+        {/* Eraser */}
+        <line x1="118" y1="58" x2="142" y2="58" />
+
+        {/* Metal band */}
+        <line x1="118" y1="68" x2="142" y2="68" />
+
+        {/* Wood */}
+        <path d="
+          M118 132
+          L130 150
+          L142 132
+        " />
+
+        {/* Lead */}
+        <line x1="130" y1="150" x2="130" y2="142" />
+      </g>
+    </svg>
+  );
 }
 
 /* ---------------- Page 1: Landing ---------------- */
 function HomeView({ onSelect }) {
   return (
-    <section className="relative flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-6">
-      {/* dark low-opacity red radial vignette */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse 60% 50% at 50% 45%, rgba(230,28,56,0.08), rgba(0,0,0,0) 70%)',
-        }}
-      />
-      <h1 className="relative z-10 max-w-2xl text-center text-3xl md:text-4xl font-light leading-snug text-white/90">
-        How would you like to extend your{' '}
-        <span className="text-[#E61C38] font-normal">Bharat</span> content?
-      </h1>
+    <section className="relative flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center overflow-hidden px-6">
+      {/* Deep black center */}
+      <div className="pointer-events-none absolute inset-0 bg-black" />
 
-      <div className="relative z-10 mt-16 flex items-start justify-center gap-10 md:gap-20">
+      <div className="relative z-10 flex items-center justify-center gap-16 md:gap-28">
         <ActionTile
-          icon={<Mic className="w-9 h-9" strokeWidth={1.25} />}
-          label="Speak your Story"
+          icon={<VintageMicIcon className="h-24 w-16" />}
+          label="Speak"
           onClick={() => onSelect('mic')}
         />
         <ActionTile
-          icon={<PenLine className="w-9 h-9" strokeWidth={1.25} />}
-          label="Write your Story"
+          icon={<WriteStoryIcon className="h-24 w-20" />}
+          label="Write"
           onClick={() => onSelect('write')}
         />
       </div>
@@ -182,12 +226,12 @@ function ActionTile({ icon, label, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="group flex flex-col items-center gap-4 rounded-2xl px-8 py-8 transition-colors hover:bg-white/[0.02]"
+      className="group flex flex-col items-center gap-5 px-4 py-4 transition-transform duration-300 hover:-translate-y-1"
     >
-      <span className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 text-gray-300 transition-all duration-300 group-hover:border-[#E61C38]/60 group-hover:text-[#E61C38]">
+      <span className="flex h-28 w-28 items-center justify-center text-white/85 transition-colors duration-300 group-hover:text-[#E61C38]">
         {icon}
       </span>
-      <span className="text-sm font-medium text-gray-400 transition-colors group-hover:text-white">
+      <span className="text-sm font-medium tracking-wide text-white/55 transition-colors group-hover:text-white">
         {label}
       </span>
     </button>

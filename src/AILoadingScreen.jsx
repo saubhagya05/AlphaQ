@@ -110,10 +110,10 @@ function Typewriter() {
     let chars = 0
     let phase = 'typing' // 'typing' | 'holding' | 'deleting'
 
-    const TYPE = 55 // ms per typed char
-    const DELETE = 28 // ms per deleted char
-    const HOLD = 1300 // ms to hold the full sentence
-    const GAP = 350 // ms blank pause before the next sentence
+    const TYPE = 42 // ms per typed char
+    const DELETE = 20 // ms per deleted char
+    const HOLD = 1000 // ms to hold the full sentence
+    const GAP = 280 // ms blank pause before the next sentence
 
     const tick = () => {
       if (!mounted) return

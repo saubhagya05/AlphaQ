@@ -19,13 +19,21 @@ export default function DashboardPage() {
 
       <div className="relative mx-auto max-w-7xl">
         <div className="mb-9">
-          <p className="text-sm font-medium tracking-[0.2em] text-[#E61C38] uppercase">
+          <p
+            className="text-base font-medium tracking-[0.2em] text-[#E61C38] uppercase sm:text-lg"
+            style={{ fontFamily: "'JetBrains Mono', monospace" }}
+          >
             Creator workspace
           </p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+          <h2
+            className="mt-3 text-5xl font-bold tracking-tight text-white sm:text-6xl"
+          >
             Your stories
           </h2>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-white/40">
+          <p
+            className="mt-3 max-w-xl text-sm leading-6 text-white/40"
+            style={{ fontFamily: "'JetBrains Mono', monospace" }}
+          >
             Continue an existing story or start something new.
           </p>
         </div>
@@ -61,35 +69,51 @@ export default function DashboardPage() {
 
 function ProjectCard({ project, onOpen }) {
   return (
-    <article className="group relative min-h-64 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0d0d0d] transition-all duration-300 hover:-translate-y-1 hover:border-[#E61C38]/35 hover:shadow-[0_18px_45px_rgba(0,0,0,0.45)]">
+    <article className="group relative h-64 overflow-hidden rounded-2xl border border-white/[0.08] bg-neutral-900 transition-all duration-300 hover:-translate-y-1 hover:border-[#E61C38]/50 hover:shadow-[0_0_20px_rgba(230,28,56,0.18)]">
       <button
         type="button"
         onClick={onOpen}
         className="absolute inset-0 z-10"
         aria-label={`Open ${project.title}`}
       />
-      <div className={`h-32 bg-gradient-to-br ${project.accent} p-5`}>
-        <div className="flex items-start justify-between">
-          <span className="rounded-full border border-white/10 bg-black/25 px-2.5 py-1 text-[11px] font-medium tracking-wider text-white/55 uppercase">
-            {project.type}
-          </span>
-          <button
-            type="button"
-            onClick={(event) => event.stopPropagation()}
-            className="relative z-20 rounded-full p-1.5 text-white/45 transition-colors hover:bg-white/10 hover:text-white"
-            aria-label={`More options for ${project.title}`}
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="mt-7 h-px w-full bg-gradient-to-r from-[#E61C38]/55 to-transparent" />
+
+      {/* Full-bleed thumbnail */}
+      <div
+        className={`absolute inset-0 bg-gradient-to-br ${project.accent} transition-transform duration-500 group-hover:scale-105`}
+      />
+      {project.cover && (
+        <img
+          src={project.cover}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+      )}
+
+      {/* Readability overlay — same pattern as character cards */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-black/10" />
+
+      {/* Top details */}
+      <div className="absolute top-0 right-0 left-0 z-20 flex items-start justify-between p-4">
+        <span className="rounded-full border border-white/15 bg-black/40 px-2.5 py-1 text-[11px] font-medium tracking-wider text-white/70 uppercase backdrop-blur-sm">
+          {project.type}
+        </span>
+        <button
+          type="button"
+          onClick={(event) => event.stopPropagation()}
+          className="rounded-full p-1.5 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+          aria-label={`More options for ${project.title}`}
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </button>
       </div>
-      <div className="p-5">
-        <h3 className="truncate text-base font-semibold text-white/85 transition-colors group-hover:text-white">
+
+      {/* Bottom details */}
+      <div className="absolute right-0 bottom-0 left-0 z-20 flex flex-col p-4 text-left">
+        <h3 className="truncate text-lg font-bold leading-tight text-white shadow-sm">
           {project.title}
         </h3>
-        <div className="mt-3 flex items-center gap-1.5 text-xs text-white/30">
-          <Clock3 className="h-3.5 w-3.5" strokeWidth={1.5} />
+        <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-medium tracking-wide text-neutral-400 uppercase">
+          <Clock3 className="h-3 w-3" strokeWidth={1.75} />
           {project.updated}
         </div>
       </div>

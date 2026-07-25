@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ChevronDown, Sparkles, User, X } from 'lucide-react'
+import { ArrowLeft, Check, ChevronDown, Pause, Pencil, Play, Sparkles, User, X } from 'lucide-react'
 import PocketLogo from '../components/PocketLogo'
-import GenreRadarChart, { THEME_RADAR_DATA } from '../components/GenreRadarChart'
+import GenreRadarChart from '../components/GenreRadarChart'
+import ThemeBarChart, { MakeChangesButton } from '../components/ThemeBarChart'
+import EmotionalCurveChart from '../components/EmotionalCurveChart'
+import IdeaRefiningLoader from '../components/IdeaRefiningLoader'
+import AILoadingScreen from '../AILoadingScreen.jsx'
 import { ROUTES } from '../constants/routes'
 
 /* ----------------------------- Mock data ----------------------------- */
@@ -10,16 +14,89 @@ import { ROUTES } from '../constants/routes'
 const PLOT_SUMMARY =
   'In the fog-drowned port city of Vardaan, disgraced detective Meera Kaul is pulled back into service when a string of impossible disappearances mirrors the case that once destroyed her. Each vanished soul leaves behind a single humming artifact and a warning written in her own forgotten handwriting, dated years into a future she has not yet lived.'
 
+const STORY_LINE =
+  'Meera is drawn back into the case that ruined her when vanishings leave behind humming artifacts and notes in her own hand. As the fog thickens and time begins to bend, she must face the author of her future — before Vardaan erases her for good.'
+
+const STORY_BEATS = [
+  'A dockworker vanishes, leaving a humming brass cylinder and a note in Meera’s handwriting — pulling her back onto a forbidden case as the disappearances multiply and Kabir surfaces with shifting motives.',
+  'A note dated three years ahead predicts the next victim, forcing Meera beneath the city to Dr. Rao’s drowned lab, where the artifacts’ true purpose — rewriting memory — is revealed.',
+  'Every thread converges at the vanishing point. Meera must choose between the future she was warned of and the past she can finally remember.',
+]
+
+const SETTING_DESC =
+  'A fog-bound port city where neon rusts into the mist and time has started to leak.'
+
+const SWOT = [
+  {
+    key: 'strengths',
+    label: 'Strengths',
+    letter: 'S',
+    color: 'text-green-400',
+    ring: 'border-green-500/40',
+    bg: 'bg-green-500/10',
+    accent: 'bg-green-400',
+    badge: 'bg-green-400/15',
+    points: [
+      'High-concept time-warning hook that rewards binge listening.',
+      'Morally grey cast anchored by a haunted, active protagonist.',
+    ],
+  },
+  {
+    key: 'weaknesses',
+    label: 'Weaknesses',
+    letter: 'W',
+    color: 'text-red-400',
+    ring: 'border-red-500/40',
+    bg: 'bg-red-500/10',
+    accent: 'bg-red-400',
+    badge: 'bg-red-400/15',
+    points: [
+      'Middle episodes lean heavily on exposition.',
+      'Supporting characters need clearer individual arcs.',
+    ],
+  },
+  {
+    key: 'opportunities',
+    label: 'Opportunities',
+    letter: 'O',
+    color: 'text-blue-400',
+    ring: 'border-blue-500/40',
+    bg: 'bg-blue-500/10',
+    accent: 'bg-blue-400',
+    badge: 'bg-blue-400/15',
+    points: [
+      'Sound-first mystery ideal for immersive audio design.',
+      'Cliffhanger structure drives strong episode-to-episode retention.',
+    ],
+  },
+  {
+    key: 'threats',
+    label: 'Threats',
+    letter: 'T',
+    color: 'text-amber-400',
+    ring: 'border-amber-500/40',
+    bg: 'bg-amber-500/10',
+    accent: 'bg-amber-400',
+    badge: 'bg-amber-400/15',
+    points: [
+      'Payoff must justify the layered mystery or lose trust.',
+      'Tone consistency is fragile across a long season.',
+    ],
+  },
+]
+
 const GENRE_TAGS = [
   { label: 'Science-Fiction', color: 'blue' },
   { label: 'Noir', color: 'neutral' },
   { label: 'Thriller', color: 'red' },
+  { label: 'Mystery', color: 'purple' },
 ]
 
 const THEME_TAGS = [
   { label: 'Isolation', color: 'purple' },
   { label: 'Revenge', color: 'red' },
   { label: 'Betrayal', color: 'orange' },
+  { label: 'Nostalgia', color: 'blue' },
 ]
 
 const GENRE_DESC =
@@ -34,6 +111,8 @@ const CHARACTERS = [
     gender: 'Female',
     role: 'Protagonist · Detective',
     traits: ['Guarded', 'Relentless', 'Haunted'],
+    persona:
+      'Female, late 30s. Lean and watchful, with tired eyes, a weathered trench coat, and a detective’s stillness that reads every room before entering it.',
     backstory:
       "Once Vardaan's most decorated investigator, Meera was disgraced after a case she cannot fully remember. She returns carrying guilt, insomnia, and an uncanny instinct for patterns others miss.",
   },
@@ -42,6 +121,8 @@ const CHARACTERS = [
     gender: 'Male',
     role: 'Informant',
     traits: ['Charming', 'Evasive', 'Loyal'],
+    persona:
+      'Male, early 30s. Wiry and quick-footed, always half-smiling, dressed in layered dockside greys that let him vanish into any crowd.',
     backstory:
       "A soft-spoken fixer who trades in secrets across the city's underbelly. Kabir knows more about Meera's lost case than he admits — and his motives shift with every tide.",
   },
@@ -50,6 +131,8 @@ const CHARACTERS = [
     gender: 'Male',
     role: 'Reclusive Scientist',
     traits: ['Brilliant', 'Paranoid', 'Obsessive'],
+    persona:
+      'Male, late 50s. Gaunt and stooped from years in the lab, with silver-streaked hair, trembling ink-stained hands, and glasses he never cleans.',
     backstory:
       'The inventor of the humming artifacts. Reyansh vanished from public life years ago; his research may be the key to the disappearances — or their cause.',
   },
@@ -58,6 +141,8 @@ const CHARACTERS = [
     gender: 'Female',
     role: 'Voice Only',
     traits: ['Warm', 'Absent', 'Guiding'],
+    persona:
+      'Female, 60s. Never seen — only a warm, unhurried voice with a faint coastal accent, carried through crackling voicemails and half-remembered lullabies.',
     backstory:
       "Heard only through old voicemails and memory fragments, Asha is Meera's emotional north star — the reason she keeps walking into the fog.",
   },
@@ -98,7 +183,7 @@ const EPISODES = [
 
 /* ----------------------------- Primitives ----------------------------- */
 
-function Modal({ open, onClose, children, size = 'md' }) {
+function Modal({ open, onClose, children, size = 'md', tall = false, leaveChatBar = false }) {
   useEffect(() => {
     if (!open) return
     const onKey = (e) => { if (e.key === 'Escape') onClose() }
@@ -112,22 +197,51 @@ function Modal({ open, onClose, children, size = 'md' }) {
 
   if (!open) return null
 
-  const maxW = size === 'lg' ? 'max-w-3xl' : 'max-w-xl'
+  const maxW =
+    size === '70vw'
+      ? 'w-[70vw] max-w-[70vw]'
+      : size === '4xl'
+        ? 'max-w-4xl'
+        : size === '6xl'
+          ? 'max-w-6xl'
+          : size === '5xl'
+            ? 'max-w-5xl'
+            : size === '3xl'
+              ? 'max-w-3xl'
+              : size === '2xl'
+                ? 'max-w-2xl'
+                : size === 'lg'
+                  ? 'max-w-lg'
+                  : 'max-w-xl'
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+      className={`fixed inset-0 z-[80] flex justify-center p-4 ${
+        leaveChatBar
+          ? 'items-start pt-10 pb-28 sm:pt-14 sm:pb-32'
+          : 'items-center'
+      }`}
       onMouseDown={onClose}
     >
-      <div className="absolute inset-0 bg-black/85" />
+      <div
+        className={`absolute inset-0 bg-black/85 ${
+          leaveChatBar ? 'bottom-24 sm:bottom-28' : ''
+        }`}
+      />
       <div
         onMouseDown={(e) => e.stopPropagation()}
-        className={`relative z-10 w-full ${maxW} max-h-[85vh] overflow-y-auto rounded-xl border border-neutral-800 bg-[#0A0A0A] p-6 sm:p-8`}
+        className={`relative z-10 w-full ${maxW} overflow-y-auto rounded-xl border border-neutral-800 bg-[#0A0A0A] p-6 sm:p-8 ${
+          tall
+            ? leaveChatBar
+              ? 'min-h-[60vh] max-h-[calc(100vh-11rem)]'
+              : 'min-h-[75vh] max-h-[92vh]'
+            : 'max-h-[85vh]'
+        }`}
       >
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 rounded-md p-1.5 text-neutral-500 transition-colors hover:bg-neutral-900 hover:text-white"
+          className="absolute top-4 right-4 z-20 rounded-md p-1.5 text-neutral-500 transition-colors hover:bg-neutral-900 hover:text-white"
           aria-label="Close"
         >
           <X className="h-4 w-4" strokeWidth={2} />
@@ -140,8 +254,49 @@ function Modal({ open, onClose, children, size = 'md' }) {
 
 function CardHeading({ children }) {
   return (
-    <h3 className="text-xs font-bold tracking-widest text-neutral-500 uppercase">
+    <h3 className="text-2xl font-bold tracking-widest text-white uppercase">
       {children}
+    </h3>
+  )
+}
+
+function EditIconButton({ label, editing, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-lg border p-2 transition-colors ${
+        editing
+          ? 'border-[#E61C38]/60 bg-[#E61C38]/10 text-[#E61C38]'
+          : 'border-neutral-800 text-neutral-400 hover:border-[#E61C38]/60 hover:text-white'
+      }`}
+      aria-label={label}
+      title={label}
+    >
+      {editing ? (
+        <Check className="h-3.5 w-3.5" strokeWidth={2} />
+      ) : (
+        <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+      )}
+    </button>
+  )
+}
+
+/** Pixelated red drop-cap on each word’s first letter — same style as Genre/Theme. */
+function PixelHeading({ words }) {
+  return (
+    <h3
+      className="shrink-0 font-sans text-xl font-bold tracking-tight text-white sm:text-2xl"
+      style={{ textShadow: '0 0 8px rgba(230, 28, 56, 0.35)' }}
+    >
+      {words.map((word, i) => (
+        <span key={`${word}-${i}`} className={i > 0 ? 'ml-2' : undefined}>
+          <span className="ideaboard-title-board font-normal text-[1.15em] text-[#E61C38] normal-case">
+            {word.charAt(0)}
+          </span>
+          <span>{word.slice(1)}</span>
+        </span>
+      ))}
     </h3>
   )
 }
@@ -161,6 +316,256 @@ function Tag({ label, color = 'neutral' }) {
     >
       {label}
     </span>
+  )
+}
+
+function formatVoiceTime(seconds) {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins}:${String(secs).padStart(2, '0')}`
+}
+
+const VOICE_TOTAL_SECONDS = 120 // 2:00
+
+/** Siri-style voice catalog: accent → numbered voices */
+const SIRI_VOICE_OPTIONS = [
+  {
+    accent: 'American',
+    voices: [
+      { id: 'us-1', label: 'Voice 1', detail: 'Female' },
+      { id: 'us-2', label: 'Voice 2', detail: 'Male' },
+      { id: 'us-3', label: 'Voice 3', detail: 'Female' },
+      { id: 'us-4', label: 'Voice 4', detail: 'Male' },
+    ],
+  },
+  {
+    accent: 'British',
+    voices: [
+      { id: 'uk-1', label: 'Voice 1', detail: 'Female' },
+      { id: 'uk-2', label: 'Voice 2', detail: 'Male' },
+      { id: 'uk-3', label: 'Voice 3', detail: 'Female' },
+      { id: 'uk-4', label: 'Voice 4', detail: 'Male' },
+    ],
+  },
+  {
+    accent: 'Australian',
+    voices: [
+      { id: 'au-1', label: 'Voice 1', detail: 'Female' },
+      { id: 'au-2', label: 'Voice 2', detail: 'Male' },
+      { id: 'au-3', label: 'Voice 3', detail: 'Female' },
+      { id: 'au-4', label: 'Voice 4', detail: 'Male' },
+    ],
+  },
+  {
+    accent: 'Indian',
+    voices: [
+      { id: 'in-1', label: 'Voice 1', detail: 'Female' },
+      { id: 'in-2', label: 'Voice 2', detail: 'Male' },
+      { id: 'in-3', label: 'Voice 3', detail: 'Female' },
+      { id: 'in-4', label: 'Voice 4', detail: 'Male' },
+    ],
+  },
+  {
+    accent: 'Irish',
+    voices: [
+      { id: 'ie-1', label: 'Voice 1', detail: 'Female' },
+      { id: 'ie-2', label: 'Voice 2', detail: 'Male' },
+    ],
+  },
+  {
+    accent: 'South African',
+    voices: [
+      { id: 'za-1', label: 'Voice 1', detail: 'Female' },
+      { id: 'za-2', label: 'Voice 2', detail: 'Male' },
+    ],
+  },
+]
+
+function VoicePreview() {
+  const [playing, setPlaying] = useState(false)
+  const [elapsed, setElapsed] = useState(0)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [selectedAccent, setSelectedAccent] = useState(SIRI_VOICE_OPTIONS[0].accent)
+  const [selectedVoiceId, setSelectedVoiceId] = useState(null)
+  const [previewingId, setPreviewingId] = useState(null)
+
+  useEffect(() => {
+    if (!playing) return undefined
+    const id = window.setInterval(() => {
+      setElapsed((current) => {
+        if (current >= VOICE_TOTAL_SECONDS) {
+          setPlaying(false)
+          return VOICE_TOTAL_SECONDS
+        }
+        return current + 1
+      })
+    }, 1000)
+    return () => window.clearInterval(id)
+  }, [playing])
+
+  useEffect(() => {
+    if (!previewingId) return undefined
+    const id = window.setTimeout(() => setPreviewingId(null), 1600)
+    return () => window.clearTimeout(id)
+  }, [previewingId])
+
+  const selectedVoice = SIRI_VOICE_OPTIONS.flatMap((group) =>
+    group.voices.map((voice) => ({ ...voice, accent: group.accent })),
+  ).find((voice) => voice.id === selectedVoiceId)
+
+  const activeGroup =
+    SIRI_VOICE_OPTIONS.find((group) => group.accent === selectedAccent) ??
+    SIRI_VOICE_OPTIONS[0]
+
+  return (
+    <div className="mt-4 space-y-3">
+      <div className="flex flex-wrap items-center gap-4">
+        <button
+          type="button"
+          onClick={() => {
+            if (elapsed >= VOICE_TOTAL_SECONDS) setElapsed(0)
+            setPlaying((value) => !value)
+          }}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E61C38] text-white shadow-[0_0_24px_rgba(230,28,56,0.35)] transition-transform hover:scale-105"
+          aria-label={playing ? 'Pause' : 'Play'}
+        >
+          {playing ? (
+            <Pause className="h-5 w-5" fill="currentColor" />
+          ) : (
+            <Play className="ml-0.5 h-5 w-5" fill="currentColor" />
+          )}
+        </button>
+
+        <span className="font-mono text-sm tabular-nums text-neutral-300">
+          {formatVoiceTime(elapsed)}
+          <span className="text-neutral-600"> / </span>
+          {formatVoiceTime(VOICE_TOTAL_SECONDS)}
+        </span>
+
+        <button
+          type="button"
+          onClick={() => setPickerOpen(true)}
+          className="inline-flex min-w-0 items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-2.5 text-left transition-colors hover:border-neutral-600"
+        >
+          <span
+            className={`truncate text-sm ${
+              selectedVoice ? 'text-white' : 'text-neutral-500'
+            }`}
+          >
+            {selectedVoice
+              ? `${selectedVoice.accent} · ${selectedVoice.label}`
+              : 'Choose Voice'}
+          </span>
+          <ChevronDown className="h-4 w-4 shrink-0 text-neutral-500" strokeWidth={1.75} />
+        </button>
+      </div>
+
+      {pickerOpen && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4"
+          onMouseDown={() => setPickerOpen(false)}
+        >
+          <div className="absolute inset-0 bg-black/80" />
+          <div
+            onMouseDown={(e) => e.stopPropagation()}
+            className="relative z-10 flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-neutral-800 bg-[#0A0A0A] shadow-[0_0_40px_rgba(0,0,0,0.6)]"
+          >
+            <div className="flex items-center justify-between border-b border-neutral-800 px-5 py-4">
+              <h4 className="text-base font-bold text-white">Choose a Voice</h4>
+              <button
+                type="button"
+                onClick={() => setPickerOpen(false)}
+                className="rounded-md p-1.5 text-neutral-500 transition-colors hover:bg-neutral-900 hover:text-white"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" strokeWidth={2} />
+              </button>
+            </div>
+
+            {/* Accent tabs — like Siri language/accent list */}
+            <div className="flex gap-2 overflow-x-auto border-b border-neutral-800 px-4 py-3">
+              {SIRI_VOICE_OPTIONS.map((group) => {
+                const active = group.accent === selectedAccent
+                return (
+                  <button
+                    key={group.accent}
+                    type="button"
+                    onClick={() => setSelectedAccent(group.accent)}
+                    className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      active
+                        ? 'bg-[#E61C38]/15 text-[#E61C38]'
+                        : 'bg-neutral-900 text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    {group.accent}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Voice list — Voice 1 / 2 / 3… with sample play */}
+            <div className="min-h-0 flex-1 overflow-y-auto p-2">
+              {activeGroup.voices.map((voice) => {
+                const selected = selectedVoiceId === voice.id
+                const previewing = previewingId === voice.id
+                return (
+                  <div
+                    key={voice.id}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-3 transition-colors ${
+                      selected ? 'bg-[#E61C38]/10' : 'hover:bg-white/[0.03]'
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setPreviewingId(voice.id)}
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                        previewing
+                          ? 'border-[#E61C38] bg-[#E61C38] text-white'
+                          : 'border-neutral-700 text-neutral-300 hover:border-[#E61C38]/60 hover:text-white'
+                      }`}
+                      aria-label={`Preview ${voice.label}`}
+                    >
+                      {previewing ? (
+                        <Pause className="h-3.5 w-3.5" fill="currentColor" />
+                      ) : (
+                        <Play className="ml-0.5 h-3.5 w-3.5" fill="currentColor" />
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedVoiceId(voice.id)
+                        setSelectedAccent(activeGroup.accent)
+                      }}
+                      className="min-w-0 flex-1 text-left"
+                    >
+                      <p className="text-sm font-semibold text-white">{voice.label}</p>
+                      <p className="text-xs text-neutral-500">{voice.detail}</p>
+                    </button>
+
+                    {selected && (
+                      <Check className="h-4 w-4 shrink-0 text-[#E61C38]" strokeWidth={2.5} />
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="border-t border-neutral-800 p-4">
+              <button
+                type="button"
+                disabled={!selectedVoiceId}
+                onClick={() => setPickerOpen(false)}
+                className="w-full rounded-xl bg-[#E61C38] py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-35"
+              >
+                Use This Voice
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -185,15 +590,56 @@ export default function IdeaboardPage() {
   const { projectId } = useParams()
   const navigate = useNavigate()
   const [modal, setModal] = useState(null)
+  const [plotVisualise, setPlotVisualise] = useState(false)
+  const [storyLine, setStoryLine] = useState(STORY_LINE)
+  const [storyBeats, setStoryBeats] = useState(STORY_BEATS)
+  const [settingText, setSettingText] = useState(SETTING_DESC)
+  const [committedStoryLine, setCommittedStoryLine] = useState(STORY_LINE)
+  const [committedStoryBeats, setCommittedStoryBeats] = useState(STORY_BEATS)
+  const [committedSettingText, setCommittedSettingText] = useState(SETTING_DESC)
+  const [editingStory, setEditingStory] = useState(false)
+  const [editingSetting, setEditingSetting] = useState(false)
   const [activeCharacter, setActiveCharacter] = useState(null)
   const [openEpisode, setOpenEpisode] = useState(1)
+  const [refinePrompt, setRefinePrompt] = useState('')
+  const [isRefining, setIsRefining] = useState(false)
+  const [generatingEpisode, setGeneratingEpisode] = useState(null)
 
+  const storyDirty =
+    storyLine !== committedStoryLine ||
+    storyBeats.some((beat, i) => beat !== committedStoryBeats[i])
+  const settingDirty = settingText !== committedSettingText
+
+  const applyStoryChanges = () => {
+    setCommittedStoryLine(storyLine)
+    setCommittedStoryBeats([...storyBeats])
+    setEditingStory(false)
+  }
+
+  const applySettingChanges = () => {
+    setCommittedSettingText(settingText)
+    setEditingSetting(false)
+  }
+
+  // Refining the whole board → the original carton loader.
+  const handleRefine = () => {
+    if (!refinePrompt.trim()) return
+    setIsRefining(true)
+    setRefinePrompt('')
+    setTimeout(() => setIsRefining(false), 8000)
+  }
+
+  // Generating a single episode → the whisper/pipeline loader, then open it.
   const handleGenerate = (episode) => {
-    navigate(ROUTES.episode(projectId, episode.id))
+    setGeneratingEpisode(episode.id)
+    setTimeout(() => {
+      setGeneratingEpisode(null)
+      navigate(ROUTES.episode(projectId, episode.id))
+    }, 5000)
   }
 
   return (
-    <section className="relative min-h-screen bg-black px-4 pb-20 sm:px-6 lg:px-8">
+    <section className="relative min-h-screen bg-black px-4 pb-32 sm:px-6 lg:px-8 ideaboard-page">
       {/* Top chrome */}
       <div className="absolute top-4 right-4 left-4 z-30 flex items-center justify-between sm:top-5 sm:right-6 sm:left-6 lg:right-8 lg:left-8">
         <button
@@ -214,13 +660,14 @@ export default function IdeaboardPage() {
         </button>
       </div>
 
-      <div className="mx-auto max-w-[1400px] pt-20 sm:pt-24">
+      <div className="mx-auto max-w-[1400px] pt-16">
         {/* Page title */}
-        <div className="mb-8 sm:mb-10">
-          <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl">
-            Idea Board
+        <div className="mb-6 flex flex-col items-center justify-center text-center">
+          <h1 className="flex items-center justify-center gap-3 text-4xl sm:text-5xl md:text-6xl">
+            <span className="ideaboard-title-idea text-[1.15em] tracking-[-0.05em] text-white uppercase">Idea</span>
+            <span className="ideaboard-title-board text-[1.15em] tracking-[-0.05em] text-[#E61C38] uppercase">BOARD</span>
           </h1>
-          <p className="mt-2 text-sm text-neutral-500">
+          <p className="mt-2 font-mono text-sm font-bold text-white">
             The Last Train Home — Project #{projectId}
           </p>
         </div>
@@ -232,19 +679,21 @@ export default function IdeaboardPage() {
           <div className="flex flex-col gap-4">
 
             {/* 1. Plot & Setting */}
-            <div className={`${card} p-6`}>
-              <CardHeading>Plot &amp; Setting</CardHeading>
+            <button
+              type="button"
+              onClick={() => setModal('plot')}
+              className={`${card} flex w-full flex-col p-6 text-left`}
+            >
+              <CardHeading>Plot and Structure</CardHeading>
               <p className="mt-4 line-clamp-3 text-sm leading-6 text-neutral-400">
                 {PLOT_SUMMARY}
               </p>
-              <button
-                type="button"
-                onClick={() => setModal('plot')}
-                className="mt-3 text-xs font-medium text-[#E61C38] transition-colors hover:text-red-400"
+              <span
+                className="mt-3 text-xs font-medium text-[#E61C38] transition-colors"
               >
                 Click to read more...
-              </button>
-            </div>
+              </span>
+            </button>
 
             {/* 2. Genre & Theme (50/50) */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -284,7 +733,9 @@ export default function IdeaboardPage() {
             {/* 3. Characters */}
             <div>
               <div className="mb-3 flex items-center justify-between">
-                <CardHeading>Characters</CardHeading>
+                <div className="ml-[25px]">
+                  <CardHeading>Characters</CardHeading>
+                </div>
                 <span className="text-xs text-neutral-600">
                   {CHARACTERS.length} cast members
                 </span>
@@ -295,15 +746,21 @@ export default function IdeaboardPage() {
                     key={ch.name}
                     type="button"
                     onClick={() => setActiveCharacter(i)}
-                    className={`${card} flex flex-col items-center gap-3 p-5 text-center`}
+                    className="group relative h-48 w-full overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900 transition-all hover:border-[#E61C38]/60 hover:shadow-[0_0_15px_rgba(230,28,56,0.2)]"
                   >
-                    <Avatar />
-                    <div>
-                      <p className="text-sm font-semibold text-white">
+                    {/* Placeholder image layer */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-neutral-700 to-black opacity-40 group-hover:opacity-50 transition-opacity"></div>
+                    
+                    {/* Gradient overlay for text readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent"></div>
+                    
+                    {/* Text content */}
+                    <div className="absolute bottom-0 left-0 flex flex-col p-4 text-left">
+                      <p className="text-lg font-bold leading-tight text-white shadow-sm">
                         {ch.name}
                       </p>
-                      <p className="mt-0.5 text-xs text-neutral-500">
-                        {ch.gender}
+                      <p className="mt-1 text-[11px] font-medium tracking-wide text-neutral-400 uppercase">
+                        {ch.role.split('·')[0].trim()}
                       </p>
                     </div>
                   </button>
@@ -313,26 +770,29 @@ export default function IdeaboardPage() {
           </div>
 
           {/* ---- RIGHT COLUMN (sticky sidebar) ---- */}
-          <aside>
+          <aside className="episode-guide">
             <div
               className={`rounded-xl border border-neutral-800 bg-[#0A0A0A] lg:sticky lg:top-6`}
             >
-              {/* Sidebar header */}
-              <div className="flex items-center justify-between border-b border-neutral-800 px-5 py-4">
-                <CardHeading>Episode Guide</CardHeading>
-                <span className="text-xs text-neutral-600">
-                  {EPISODES.length} episodes
-                </span>
+              {/* Sidebar header (Tabs) */}
+              <div className="relative flex items-center gap-6 px-6 pt-6 pb-4">
+                {/* Border line */}
+                <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-neutral-800"></div>
+                <button className="relative text-[22px] tracking-tight text-white font-medium">
+                  Episodes <span className="text-[10px] text-neutral-400 align-top tracking-normal">346</span>
+                  {/* Purple glow underline */}
+                  <div className="absolute -bottom-[17px] left-0 right-0 h-[3px] rounded-full bg-gradient-to-r from-purple-600 to-pink-500 blur-[2px]"></div>
+                  <div className="absolute -bottom-[17px] left-0 right-0 h-[2px] rounded-full bg-gradient-to-r from-purple-400 to-pink-400"></div>
+                </button>
               </div>
 
-              {/* Accordion rows */}
-              <div>
+              <div className="px-6 pb-6 pt-4 flex flex-col gap-7">
                 {EPISODES.map((episode) => {
                   const isOpen = openEpisode === episode.id
                   return (
                     <div
                       key={episode.id}
-                      className="border-t border-neutral-800 first:border-t-0"
+                      className="group"
                     >
                       {/* Row header */}
                       <button
@@ -340,37 +800,32 @@ export default function IdeaboardPage() {
                         onClick={() =>
                           setOpenEpisode(isOpen ? null : episode.id)
                         }
-                        className="flex w-full items-start justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-neutral-900"
+                        className="flex w-full flex-col text-left cursor-pointer"
                       >
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-white">
-                            Episode {episode.id}
-                          </p>
-                          <p
-                            className={`mt-0.5 text-xs text-neutral-500 ${isOpen ? '' : 'truncate'}`}
-                          >
-                            {episode.short}
-                          </p>
-                        </div>
-                        <ChevronDown
-                          className={`mt-0.5 h-4 w-4 shrink-0 text-neutral-600 transition-transform duration-250 ${isOpen ? 'rotate-180 text-[#E61C38]' : ''}`}
-                          strokeWidth={2}
-                        />
+                        <h4 className="text-[17px] text-white font-normal transition-colors group-hover:text-[#c084fc]">
+                          E{episode.id}. {episode.title}
+                        </h4>
+                        <p className="mt-1.5 text-[13px] text-neutral-500 font-medium tracking-wide">
+                          11:{15 + episode.id}M
+                        </p>
                       </button>
 
                       {/* Expandable content */}
                       <div
-                        className={`grid transition-all duration-250 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
+                        className={`grid transition-all duration-250 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100 mt-4' : 'grid-rows-[0fr] opacity-0'}`}
                       >
                         <div className="overflow-hidden">
-                          <div className="px-5 pb-5">
-                            <p className="text-xs leading-5 text-neutral-500">
+                          <div className="rounded-lg bg-neutral-900/50 p-4 border border-neutral-800">
+                            <p className="text-sm font-semibold text-neutral-200 mb-2">
+                              {episode.short}
+                            </p>
+                            <p className="text-xs leading-5 text-neutral-400 mb-4">
                               {episode.long}
                             </p>
                             <button
                               type="button"
                               onClick={() => handleGenerate(episode)}
-                              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#E61C38] px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-red-700 active:scale-95"
+                              className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#E61C38] px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-red-700 active:scale-95"
                             >
                               <Sparkles className="h-3.5 w-3.5" strokeWidth={2} />
                               Generate / Preview Episode
@@ -389,40 +844,212 @@ export default function IdeaboardPage() {
 
       {/* ---- Modals ---- */}
 
-      <Modal open={modal === 'plot'} onClose={() => setModal(null)}>
-        <CardHeading>Plot &amp; Setting</CardHeading>
-        <p className="mt-4 text-sm leading-7 text-neutral-300">{PLOT_SUMMARY}</p>
+      <Modal open={modal === 'plot'} onClose={() => setModal(null)} size="70vw">
+        <div className="flex items-center gap-4 pr-10">
+          <PixelHeading words={['Story', 'Line']} />
+          <button
+            type="button"
+            onClick={() => setPlotVisualise((v) => !v)}
+            className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold tracking-wide transition-colors ${
+              plotVisualise
+                ? 'border-[#E61C38] bg-[#E61C38]/15 text-[#E61C38]'
+                : 'border-neutral-700 text-neutral-300 hover:border-[#E61C38]/60 hover:text-white'
+            }`}
+          >
+            <Sparkles className="h-3.5 w-3.5" strokeWidth={2} />
+            Visualise
+          </button>
+          <EditIconButton
+            label={editingStory ? 'Save story line' : 'Edit story line'}
+            editing={editingStory}
+            onClick={() => setEditingStory((value) => !value)}
+          />
+        </div>
+
+        <div className="mt-5">
+          <div className="max-w-3xl">
+            {editingStory ? (
+              <textarea
+                value={storyLine}
+                onChange={(event) => setStoryLine(event.target.value)}
+                rows={3}
+                className="w-full resize-y rounded-lg border border-neutral-700 bg-black/40 px-4 py-3 text-sm leading-7 text-neutral-200 outline-none transition-colors focus:border-[#E61C38]/70"
+                aria-label="Story line introduction"
+              />
+            ) : (
+              <p className="text-sm leading-7 text-neutral-300">{storyLine}</p>
+            )}
+            <ul className="mt-5 space-y-3.5">
+              {storyBeats.map((beat, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#E61C38]" />
+                  {editingStory ? (
+                    <textarea
+                      value={beat}
+                      onChange={(event) =>
+                        setStoryBeats((beats) =>
+                          beats.map((item, index) =>
+                            index === i ? event.target.value : item,
+                          ),
+                        )
+                      }
+                      rows={2}
+                      className="w-full resize-y rounded-lg border border-neutral-700 bg-black/40 px-3 py-2 text-sm leading-6 text-neutral-300 outline-none transition-colors focus:border-[#E61C38]/70"
+                      aria-label={`Story beat ${i + 1}`}
+                    />
+                  ) : (
+                    <p className="text-sm leading-6 text-neutral-400">{beat}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+          {storyDirty && (
+            <div className="mt-4 flex justify-end">
+              <MakeChangesButton onClick={applyStoryChanges} />
+            </div>
+          )}
+        </div>
+
+        <div className="mt-10 border-t border-neutral-800 pt-8">
+          <div className="flex items-center gap-4">
+            <PixelHeading words={['Setting']} />
+            <EditIconButton
+              label={editingSetting ? 'Save setting' : 'Edit setting'}
+              editing={editingSetting}
+              onClick={() => setEditingSetting((value) => !value)}
+            />
+          </div>
+          {editingSetting ? (
+            <textarea
+              value={settingText}
+              onChange={(event) => setSettingText(event.target.value)}
+              rows={2}
+              className="mt-4 w-full max-w-3xl resize-y rounded-lg border border-neutral-700 bg-black/40 px-4 py-3 text-sm leading-7 text-neutral-200 outline-none transition-colors focus:border-[#E61C38]/70"
+              aria-label="Setting description"
+            />
+          ) : (
+            <p className="mt-4 max-w-3xl text-sm leading-7 text-neutral-300">
+              {settingText}
+            </p>
+          )}
+          {settingDirty && (
+            <div className="mt-4 flex justify-end">
+              <MakeChangesButton onClick={applySettingChanges} />
+            </div>
+          )}
+        </div>
+
+        {/* SWOT matrix — always visible below Setting */}
+        <div className="mt-10 border-t border-neutral-800 pt-8">
+          <h4 className="text-xs font-bold tracking-widest text-neutral-500 uppercase">
+            SWOT Analysis · Literature
+          </h4>
+          <div className="relative mt-5 grid max-w-4xl grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-0">
+            {/* Crosshair lines for classic SWOT look on desktop */}
+            <div className="pointer-events-none absolute inset-0 hidden sm:block">
+              <div className="absolute top-0 bottom-0 left-1/2 w-px -translate-x-1/2 bg-neutral-700" />
+              <div className="absolute right-0 left-0 top-1/2 h-px -translate-y-1/2 bg-neutral-700" />
+            </div>
+
+            {SWOT.map((quad) => (
+              <div
+                key={quad.key}
+                className={`relative ${quad.bg} border ${quad.ring} p-4 sm:border-0 sm:p-5`}
+              >
+                <div className="mb-3 flex items-center gap-2.5">
+                  <span
+                    className={`flex h-8 w-8 items-center justify-center rounded-md text-sm font-bold ${quad.badge} ${quad.color}`}
+                  >
+                    {quad.letter}
+                  </span>
+                  <p className={`text-sm font-bold tracking-wide ${quad.color}`}>
+                    {quad.label}
+                  </p>
+                </div>
+                <ul className="space-y-2">
+                  {quad.points.map((point) => (
+                    <li
+                      key={point}
+                      className="flex items-start gap-2 text-xs leading-5 text-neutral-400"
+                    >
+                      <span
+                        className={`mt-1.5 h-1 w-1 shrink-0 rounded-full ${quad.accent}`}
+                      />
+                      {point}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
       </Modal>
 
-      <Modal open={modal === 'genre'} onClose={() => setModal(null)} size="lg">
-        <CardHeading>Genre</CardHeading>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {GENRE_TAGS.map((tag) => (
-            <Tag key={tag.label} label={tag.label} color={tag.color} />
-          ))}
-        </div>
-        <p className="mt-4 text-sm leading-6 text-neutral-400">{GENRE_DESC}</p>
-        <div className="mt-4">
-          <GenreRadarChart glowId="modal-genre-glow" />
+      <Modal open={modal === 'genre'} onClose={() => setModal(null)} size="70vw">
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex w-full flex-col pt-20 pl-6 lg:w-1/3 lg:pt-32 lg:pl-12 xl:w-2/5">
+            <div className="flex flex-col items-start gap-6">
+              <h3 
+                className="shrink-0 font-sans text-7xl font-bold tracking-tight text-white" 
+                style={{ textShadow: '0 0 10px rgba(230, 28, 56, 0.4)' }}
+              >
+                <span className="ideaboard-title-board font-normal text-[1.15em] text-[#E61C38] normal-case">G</span>
+                <span>enre</span>
+              </h3>
+              <div className="grid w-fit grid-cols-2 gap-3">
+                {GENRE_TAGS.map((tag) => (
+                  <Tag key={tag.label} label={tag.label} color={tag.color} />
+                ))}
+              </div>
+            </div>
+            <p className="mt-8 text-sm leading-6 text-neutral-400">{GENRE_DESC}</p>
+          </div>
+          <div className="w-full lg:w-2/3 xl:w-3/5 -mt-16">
+            <GenreRadarChart glowId="modal-genre-glow" />
+          </div>
         </div>
       </Modal>
 
-      <Modal open={modal === 'theme'} onClose={() => setModal(null)} size="lg">
-        <CardHeading>Theme</CardHeading>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {THEME_TAGS.map((tag) => (
-            <Tag key={tag.label} label={tag.label} color={tag.color} />
-          ))}
-        </div>
-        <p className="mt-4 text-sm leading-6 text-neutral-400">{THEME_DESC}</p>
-        <div className="mt-4">
-          <GenreRadarChart data={THEME_RADAR_DATA} glowId="modal-theme-glow" />
+      <Modal open={modal === 'theme'} onClose={() => setModal(null)} size="70vw">
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex w-full flex-col pt-8 pl-6 lg:w-1/3 lg:pt-16 lg:pl-12 xl:w-2/5">
+            <div className="flex flex-col items-start gap-6">
+              <h3 
+                className="shrink-0 font-sans text-7xl font-bold tracking-tight text-white" 
+                style={{ textShadow: '0 0 10px rgba(230, 28, 56, 0.4)' }}
+              >
+                <span className="ideaboard-title-board font-normal text-[1.15em] text-[#E61C38] normal-case">T</span>
+                <span>heme</span>
+              </h3>
+              <div className="grid w-fit grid-cols-2 gap-3">
+                {THEME_TAGS.map((tag) => (
+                  <Tag key={tag.label} label={tag.label} color={tag.color} />
+                ))}
+              </div>
+            </div>
+            <p className="mt-8 text-sm leading-6 text-neutral-400">{THEME_DESC}</p>
+          </div>
+          <div className="w-full lg:w-2/3 xl:w-3/5 pt-4">
+            <ThemeBarChart />
+            <div className="mt-8 border-l border-neutral-800 pl-4">
+              <p className="text-[11px] font-bold tracking-[0.18em] text-neutral-500 uppercase">
+                Emotional Curve · Full Plot
+              </p>
+              <div className="mt-3">
+                <EmotionalCurveChart idPrefix="theme-plot-curve" />
+              </div>
+            </div>
+          </div>
         </div>
       </Modal>
 
       <Modal
         open={activeCharacter !== null}
         onClose={() => setActiveCharacter(null)}
+        size="lg"
+        tall
+        leaveChatBar
       >
         {activeCharacter !== null && (
           <div>
@@ -454,15 +1081,62 @@ export default function IdeaboardPage() {
 
             <div className="mt-5 border-t border-neutral-800 pt-5">
               <p className="text-xs font-bold tracking-widest text-neutral-500 uppercase">
+                Physical Persona
+              </p>
+              <p className="mt-2 text-sm leading-6 text-neutral-300">
+                {CHARACTERS[activeCharacter].persona}
+              </p>
+            </div>
+
+            <div className="mt-5 border-t border-neutral-800 pt-5">
+              <p className="text-xs font-bold tracking-widest text-neutral-500 uppercase">
                 Backstory
               </p>
               <p className="mt-2 text-sm leading-6 text-neutral-300">
                 {CHARACTERS[activeCharacter].backstory}
               </p>
             </div>
+
+            <div className="mt-5 border-t border-neutral-800 pt-5">
+              <p className="text-xs font-bold tracking-widest text-neutral-500 uppercase">
+                Voice Preview
+              </p>
+              <VoicePreview key={activeCharacter} />
+            </div>
           </div>
         )}
       </Modal>
+
+      {/* Refine board → original carton loader (full-screen overlay) */}
+      {isRefining && (
+        <div className="fixed inset-0 z-[100]">
+          <AILoadingScreen />
+        </div>
+      )}
+
+      {/* Generate episode → whisper/pipeline loader */}
+      {generatingEpisode !== null && <IdeaRefiningLoader />}
+
+      {/* AI Chat Bar Sticky at Bottom — above character modal so it stays usable */}
+      <div className="fixed bottom-0 left-0 right-0 z-[90] bg-gradient-to-t from-black via-black to-transparent pt-12 pb-6 px-4 pointer-events-none">
+        <div className="mx-auto max-w-[800px] relative flex items-center shadow-[0_0_30px_rgba(230,28,56,0.12)] rounded-full pointer-events-auto">
+           <input
+             type="text"
+             value={refinePrompt}
+             onChange={(e) => setRefinePrompt(e.target.value)}
+             onKeyDown={(e) => e.key === 'Enter' && handleRefine()}
+             placeholder="Refine, edit, or ask AI..."
+             className="w-full bg-[#0A0A0A] border border-neutral-800 rounded-full pl-6 pr-16 py-4 text-[15px] text-white placeholder-neutral-500 focus:outline-none focus:border-red-900/60 transition-colors shadow-inner"
+           />
+           <button
+             onClick={handleRefine}
+             disabled={!refinePrompt.trim()}
+             className="absolute right-2 p-3 bg-[#E61C38] hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-full text-white transition-transform hover:scale-105 active:scale-95 shadow-lg"
+           >
+             <Sparkles className="w-5 h-5" strokeWidth={2.5} />
+           </button>
+        </div>
+      </div>
     </section>
   )
 }

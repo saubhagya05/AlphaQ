@@ -20,15 +20,8 @@ export default function AppLayout() {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-black text-white">
-      {focusMode && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#7f0a1c] via-[#E61C38] to-[#7f0a1c] px-4 py-2 text-center text-sm font-medium tracking-wide text-white shadow-[0_2px_20px_rgba(230,28,56,0.35)]">
-          Press Escape to exit focus mode.{' '}
-          <span className="mx-2 text-white/50">|</span> Maximized concentration,
-          better results.
-        </div>
-      )}
-
-      {!focusMode && !isIdeaboard && (
+      {/* Navbar — always visible (no focusMode banner) */}
+      {!isIdeaboard && (
         <header className="fixed top-0 right-0 left-0 z-40 flex h-16 items-center justify-between border-b border-white/5 bg-black/80 px-4 backdrop-blur sm:px-6">
           {isDashboard ? (
             <>
@@ -41,10 +34,7 @@ export default function AppLayout() {
               </div>
               <div className="flex items-center gap-2 sm:gap-5">
                 <div className="flex items-center gap-2 text-sm text-white/70">
-                  <UserCircle
-                    className="h-6 w-6 text-white/55"
-                    strokeWidth={1.5}
-                  />
+                  <UserCircle className="h-6 w-6 text-white/55" strokeWidth={1.5} />
                   <span className="hidden sm:inline">Chaitanya</span>
                 </div>
                 <button
@@ -59,10 +49,7 @@ export default function AppLayout() {
             </>
           ) : (
             <>
-              <Link
-                to={ROUTES.DASHBOARD}
-                className="flex select-none items-center gap-2"
-              >
+              <Link to={ROUTES.DASHBOARD} className="flex select-none items-center gap-2">
                 <span className="text-lg font-extrabold tracking-tight text-[#E61C38]">
                   Pocket FM
                 </span>
@@ -86,7 +73,7 @@ export default function AppLayout() {
 
       <main
         className={`relative min-h-screen transition-all duration-300 ${
-          focusMode ? 'pt-10' : isIdeaboard ? 'pt-0' : 'pt-16'
+          isIdeaboard ? 'pt-0' : 'pt-16'
         }`}
       >
         <Outlet />

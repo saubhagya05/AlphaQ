@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Languages } from 'lucide-react'
 import GeminiSparkle from '../components/GeminiSparkle'
 import AILoadingScreen from '../AILoadingScreen.jsx'
+import StoryQuestionsModal from '../components/StoryQuestionsModal'
+import { ROUTES } from '../constants/routes'
 
 // Fullscreen API helpers
 const requestFullscreen = () => {
@@ -44,8 +47,10 @@ const PLACEHOLDERS = {
 }
 
 export default function WritePage() {
+  const navigate = useNavigate()
   const [lang, setLang] = useState('en')
   const [inputText, setInputText] = useState('')
+  const [showQuestions, setShowQuestions] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [storyOutput, setStoryOutput] = useState(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -70,12 +75,18 @@ export default function WritePage() {
     }
   }, [])
 
+  // Step 1: "Send to AI" opens the question modal
   const handleSend = () => {
-    setStoryOutput(null)
+    setShowQuestions(true)
+  }
+
+  // Step 2: all questions answered/skipped → start loading → navigate to ideaboard
+  const handleQuestionsComplete = () => {
+    setShowQuestions(false)
     setIsLoading(true)
     setTimeout(() => {
       setIsLoading(false)
-      setStoryOutput(MOCK_STORY(inputText))
+      navigate(ROUTES.ideaboard(1))
     }, 16000)
   }
 
@@ -189,6 +200,16 @@ export default function WritePage() {
               </div>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Question modal — overlays the write view, animates in/out */}
+      <AnimatePresence>
+        {showQuestions && (
+          <StoryQuestionsModal
+            onComplete={handleQuestionsComplete}
+            onClose={() => setShowQuestions(false)}
+          />
         )}
       </AnimatePresence>
     </div>

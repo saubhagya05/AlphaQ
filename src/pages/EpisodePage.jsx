@@ -267,7 +267,7 @@ export default function EpisodePage() {
             {/* Summary */}
             <div className={`${card} p-5`}>
               <p className="text-[11px] font-bold tracking-[0.18em] text-neutral-500 uppercase">
-                Episode Summary
+                Episode Outline
               </p>
               <p className="mt-3 text-sm leading-6 text-neutral-400">
                 {meta.summary}
@@ -277,7 +277,7 @@ export default function EpisodePage() {
             {/* Story structure graph */}
             <div className={`${card} p-5`}>
               <p className="text-[11px] font-bold tracking-[0.18em] text-neutral-500 uppercase">
-                Story Structure
+                Emotional Curve
               </p>
               <div className="mt-3 h-44 w-full">
                 <ResponsiveContainer width="100%" height="100%">

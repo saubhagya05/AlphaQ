@@ -10,6 +10,7 @@ export default function AppLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const isDashboard = location.pathname === ROUTES.DASHBOARD
+  const isIdeaboard = location.pathname.startsWith(ROUTES.IDEABOARD)
 
   useEffect(() => {
     if (location.pathname !== ROUTES.WRITE) {
@@ -27,7 +28,7 @@ export default function AppLayout() {
         </div>
       )}
 
-      {!focusMode && (
+      {!focusMode && !isIdeaboard && (
         <header className="fixed top-0 right-0 left-0 z-40 flex h-16 items-center justify-between border-b border-white/5 bg-black/80 px-4 backdrop-blur sm:px-6">
           {isDashboard ? (
             <>
@@ -85,7 +86,7 @@ export default function AppLayout() {
 
       <main
         className={`relative min-h-screen transition-all duration-300 ${
-          focusMode ? 'pt-10' : 'pt-16'
+          focusMode ? 'pt-10' : isIdeaboard ? 'pt-0' : 'pt-16'
         }`}
       >
         <Outlet />

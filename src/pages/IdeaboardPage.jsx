@@ -1,6 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Send, Sparkles, Volume2 } from 'lucide-react'
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Send,
+  Volume2,
+} from 'lucide-react'
+import PocketLogo from '../components/PocketLogo'
+import ThemeGenrePanel from '../components/ThemeGenrePanel'
 import { ROUTES } from '../constants/routes'
 import { useApp } from '../context/AppContext'
 
@@ -8,55 +16,13 @@ const PANES = [
   {
     id: 'theme',
     title: 'Theme & Genre',
-    body: (
-      <div className="mx-auto max-w-3xl space-y-6 text-sm leading-6 text-white/55">
-        <div>
-          <h3 className="mb-2 text-base font-semibold text-white/90">
-            Core theme
-          </h3>
-          <p>
-            A melancholic midnight journey across small-town India — longing,
-            chance encounters, and the quiet courage of starting over.
-          </p>
-        </div>
-        <div>
-          <h3 className="mb-2 text-base font-semibold text-white/90">
-            Emotional arcs
-          </h3>
-          <ul className="list-disc space-y-1.5 pl-5">
-            <li>Nostalgia vs. the fear of returning home</li>
-            <li>Unexpected intimacy between strangers</li>
-            <li>Secrets that travel farther than the train itself</li>
-          </ul>
-        </div>
-        <div>
-          <h3 className="mb-2 text-base font-semibold text-white/90">Genre</h3>
-          <div className="flex flex-wrap gap-2">
-            {['Drama', 'Slice of Life', 'Romance', 'Mystery'].map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full border border-[#E61C38]/25 bg-[#E61C38]/10 px-3 py-1 text-xs font-medium text-[#E61C38]"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
-        <div>
-          <h3 className="mb-2 text-base font-semibold text-white/90">Tone</h3>
-          <p>
-            Soft, cinematic, and reflective — with brief moments of suspense
-            that never break the quiet intimacy of the journey.
-          </p>
-        </div>
-      </div>
-    ),
+    body: <ThemeGenrePanel />,
   },
   {
     id: 'sound',
     title: 'Sound & Narration',
     body: (
-      <div className="mx-auto max-w-3xl space-y-6 text-sm leading-6 text-white/55">
+      <div className="w-full space-y-6 text-left text-sm leading-6 text-white/55">
         <div>
           <h3 className="mb-2 text-base font-semibold text-white/90">
             Narration style
@@ -111,7 +77,7 @@ const PANES = [
     id: 'plot',
     title: 'Plot & Characters',
     body: (
-      <div className="mx-auto max-w-3xl space-y-6 text-sm leading-6 text-white/55">
+      <div className="w-full space-y-6 text-left text-sm leading-6 text-white/55">
         <div>
           <h3 className="mb-2 text-base font-semibold text-white/90">Synopsis</h3>
           <p>
@@ -169,13 +135,10 @@ export default function IdeaboardPage() {
   const { projects } = useApp()
   const navigate = useNavigate()
   const [activePane, setActivePane] = useState('theme')
+  const [paneOpen, setPaneOpen] = useState(true)
   const [message, setMessage] = useState('')
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      text: 'Ask me to refine theme, sound, narration, or characters for this story.',
-    },
-  ])
+  const textareaRef = useRef(null)
+  const MAX_PROMPT_LINES = 10
 
   const project = useMemo(
     () => projects.find((item) => String(item.id) === String(projectId)),
@@ -183,6 +146,23 @@ export default function IdeaboardPage() {
   )
 
   const activeContent = PANES.find((pane) => pane.id === activePane)
+
+  useEffect(() => {
+    const el = textareaRef.current
+    if (!el) return
+
+    const styles = window.getComputedStyle(el)
+    const lineHeight = Number.parseFloat(styles.lineHeight) || 20
+    const paddingY =
+      Number.parseFloat(styles.paddingTop) +
+      Number.parseFloat(styles.paddingBottom)
+    const maxHeight = lineHeight * MAX_PROMPT_LINES + paddingY
+
+    el.style.height = 'auto'
+    const nextHeight = Math.min(el.scrollHeight, maxHeight)
+    el.style.height = `${nextHeight}px`
+    el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden'
+  }, [message])
 
   if (!project) {
     return (
@@ -202,97 +182,139 @@ export default function IdeaboardPage() {
   const sendMessage = () => {
     const trimmed = message.trim()
     if (!trimmed) return
-    setMessages((prev) => [
-      ...prev,
-      { role: 'user', text: trimmed },
-      {
-        role: 'assistant',
-        text: 'Got it — I can help expand that idea across theme, sound, and plot.',
-      },
-    ])
     setMessage('')
   }
 
   return (
-    <section className="relative h-[calc(100vh-4rem)] overflow-hidden px-4 pt-3 pb-4 sm:px-6 lg:px-8">
-      <div className="mx-auto flex h-full w-full max-w-[1400px] flex-col">
-        {/* Centered tabs as protrusions from the gray box */}
-        <div className="relative z-10 -mb-px flex shrink-0 justify-center gap-1.5 px-4">
-          {PANES.map((pane) => {
-            const isActive = activePane === pane.id
-            return (
-              <button
-                key={pane.id}
-                type="button"
-                onClick={() => setActivePane(pane.id)}
-                className={`rounded-t-xl px-4 py-2.5 text-xs font-medium transition-colors sm:px-6 sm:text-[13px] ${
-                  isActive
-                    ? 'relative border border-b-0 border-white/10 bg-[#0d0d0d] text-white after:absolute after:inset-x-0 after:-bottom-px after:h-[2px] after:bg-[#0d0d0d]'
-                    : 'border border-transparent bg-transparent text-white/40 hover:bg-white/[0.04] hover:text-white/65'
-                }`}
-              >
-                {pane.title}
-                {isActive && (
-                  <span className="mt-1.5 block h-0.5 w-full rounded-full bg-[#E61C38]" />
-                )}
-              </button>
-            )
-          })}
+    <section className="relative h-screen overflow-hidden px-4 pb-12 sm:px-6 sm:pb-16 lg:px-8">
+      {/* Corner chrome — stays at absolute top */}
+      <div className="absolute top-4 right-4 left-4 z-30 flex items-center justify-between sm:top-5 sm:right-6 sm:left-6 lg:right-8 lg:left-8">
+        <button
+          type="button"
+          onClick={() => navigate(ROUTES.DASHBOARD)}
+          className="select-none"
+          aria-label="Pocket FM home"
+        >
+          <PocketLogo />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => navigate(ROUTES.DASHBOARD)}
+          className="inline-flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-[#E61C38]"
+        >
+          <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
+          Dashboard
+        </button>
+      </div>
+
+      <div className="mx-auto flex h-full w-full max-w-[1400px] flex-col pt-[15px]">
+        {/* IdeaBoard title */}
+        <div className="mb-5 shrink-0 text-center sm:mb-6">
+          <h1 className="ideaboard-title -rotate-1 text-4xl sm:text-5xl md:text-6xl">
+            <span className="ideaboard-title-word ideaboard-title-idea">
+              Idea
+            </span>
+            <span className="ideaboard-title-word ideaboard-title-board ml-2 sm:ml-3">
+              Board
+            </span>
+          </h1>
         </div>
 
-        {/* Main gray box — tabs sit on its top edge */}
-        <div className="relative z-0 flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0d0d0d]">
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8 sm:py-8">
-            {activeContent?.body}
-          </div>
-
-          {/* Chatbox — slightly larger, translucent */}
-          <div className="shrink-0 px-4 pb-5 sm:px-6">
-            <div className="mx-auto w-full max-w-md overflow-hidden rounded-2xl border border-[#E61C38]/65 bg-white/[0.05] shadow-[0_0_24px_rgba(230,28,56,0.1)] backdrop-blur-md">
-              <div className="max-h-32 space-y-2 overflow-y-auto px-3.5 pt-3 pb-2">
-                {messages.map((entry, index) => (
-                  <div
-                    key={`${entry.role}-${index}`}
-                    className={`flex ${
-                      entry.role === 'user' ? 'justify-end' : 'justify-start'
-                    }`}
-                  >
-                    <div
-                      className={`max-w-[88%] rounded-2xl px-3 py-2 text-xs leading-5 ${
-                        entry.role === 'user'
-                          ? 'bg-[#E61C38]/25 text-white/90'
-                          : 'bg-white/[0.06] text-white/55'
-                      }`}
-                    >
-                      {entry.role === 'assistant' && (
-                        <Sparkles className="mb-0.5 inline h-3 w-3 text-[#E61C38]" />
-                      )}{' '}
-                      {entry.text}
-                    </div>
-                  </div>
-                ))}
+        {/* Body: foldable left pane + open content */}
+        <div className="relative flex min-h-0 flex-1">
+          {/* Foldable left pane */}
+          <aside
+            className={`relative flex shrink-0 flex-col transition-all duration-300 ease-out ${
+              paneOpen ? 'mr-5 w-52 sm:mr-6 sm:w-56' : 'mr-0 w-0'
+            }`}
+          >
+            <div
+              className={`flex h-full flex-col overflow-hidden transition-opacity duration-200 ${
+                paneOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+              }`}
+            >
+              <div className="mb-3 flex items-center justify-between pr-1">
+                <p className="text-[11px] font-medium tracking-[0.18em] text-white/30 uppercase">
+                  Sections
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setPaneOpen(false)}
+                  title="Collapse"
+                  className="group relative rounded-lg p-1.5 text-white/40 transition-colors hover:bg-white/5 hover:text-white"
+                  aria-label="Collapse"
+                >
+                  <ChevronLeft className="h-4 w-4" strokeWidth={1.75} />
+                  <span className="pointer-events-none absolute top-1/2 left-full z-30 ml-2 -translate-y-1/2 rounded-md border border-white/10 bg-[#1a1a1a] px-2 py-1 text-[11px] whitespace-nowrap text-white/80 opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                    Collapse
+                  </span>
+                </button>
               </div>
 
-              <div className="border-t border-[#E61C38]/20 p-2.5">
-                <div className="flex items-center gap-2 rounded-xl border border-[#E61C38]/30 bg-black/25 px-2.5 py-1.5 backdrop-blur-sm">
-                  <input
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') sendMessage()
-                    }}
-                    placeholder="Ask anything about this story…"
-                    className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none placeholder:text-white/30"
-                  />
-                  <button
-                    type="button"
-                    onClick={sendMessage}
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#E61C38] text-white transition-opacity hover:opacity-90"
-                    aria-label="Send message"
-                  >
-                    <Send className="h-3.5 w-3.5" strokeWidth={2} />
-                  </button>
-                </div>
+              <nav className="flex flex-col gap-1.5">
+                {PANES.map((pane) => {
+                  const isActive = activePane === pane.id
+                  return (
+                    <button
+                      key={pane.id}
+                      type="button"
+                      onClick={() => setActivePane(pane.id)}
+                      className={`rounded-xl px-3.5 py-3 text-left text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-[#E61C38]/15 text-white shadow-[inset_3px_0_0_0_#E61C38]'
+                          : 'text-white/45 hover:bg-white/[0.04] hover:text-white/75'
+                      }`}
+                    >
+                      {pane.title}
+                    </button>
+                  )
+                })}
+              </nav>
+            </div>
+          </aside>
+
+          {/* Re-open tab when pane is closed */}
+          {!paneOpen && (
+            <button
+              type="button"
+              onClick={() => setPaneOpen(true)}
+              title="Expand"
+              className="group absolute top-0 left-0 z-20 flex items-center gap-1 rounded-r-xl border border-l-0 border-white/10 bg-white/[0.04] px-1.5 py-3 text-white/50 transition-colors hover:bg-[#E61C38]/15 hover:text-white"
+              aria-label="Expand"
+            >
+              <ChevronRight className="h-4 w-4" strokeWidth={1.75} />
+              <span className="pointer-events-none absolute top-1/2 left-full z-30 ml-2 -translate-y-1/2 rounded-md border border-white/10 bg-[#1a1a1a] px-2 py-1 text-[11px] whitespace-nowrap text-white/80 opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                Expand
+              </span>
+            </button>
+          )}
+
+          {/* Content + chat — no gray box */}
+          <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 overflow-y-auto pb-10 pl-[30px] pr-2 sm:pr-4">
+              {activeContent?.body}
+            </div>
+
+            {/* Chatbox — half overlapping bottom edge */}
+            <div className="pointer-events-none absolute right-0 bottom-0 left-0 z-20 translate-y-1/2">
+              <div className="pointer-events-auto mx-auto flex w-full max-w-2xl items-end gap-2 rounded-2xl border border-[#E61C38]/65 bg-[#121212]/95 px-3 py-2 shadow-[0_0_24px_rgba(230,28,56,0.15)] backdrop-blur-md sm:px-4 sm:py-2.5">
+                <textarea
+                  ref={textareaRef}
+                  rows={1}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Ask me to refine theme, sound, narration, or characters for this story…"
+                  className="min-h-[1.25rem] min-w-0 flex-1 resize-none bg-transparent text-xs leading-5 text-white outline-none placeholder:text-white/40 sm:min-h-[1.25rem] sm:text-sm sm:leading-5"
+                />
+                <button
+                  type="button"
+                  onClick={sendMessage}
+                  className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E61C38] text-white transition-opacity hover:opacity-90"
+                  aria-label="Send message"
+                >
+                  <Send className="h-3.5 w-3.5" strokeWidth={2} />
+                </button>
               </div>
             </div>
           </div>

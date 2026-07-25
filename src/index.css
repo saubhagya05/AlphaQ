@@ -77,6 +77,10 @@ body,
     drop-shadow(0 0 22px rgba(230, 28, 56, 0.45));
 }
 
+.dialogue-line {
+  font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
 .dialogues-scroll {
   scrollbar-width: thin;
   scrollbar-color: #ffffff transparent;

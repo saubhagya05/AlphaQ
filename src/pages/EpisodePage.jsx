@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
+  Area,
+  AreaChart,
   CartesianGrid,
-  Line,
-  LineChart,
   ResponsiveContainer,
   XAxis,
   YAxis,
@@ -50,7 +50,7 @@ const EPISODE_META = {
 
 const DIALOGUES = {
   1: [
-    { id: 1, character: 'Narrator', line: 'Night settles over Vardaan’s docks like wet ash. Somewhere between the crates, something begins to hum.' },
+    { id: 1, character: 'Narrator', line: 'Night settles over Vardaan’s docks like wet ash. Somewhere between the crates to hum.' },
     { id: 2, character: 'Meera Kaul', line: 'No signs of struggle. No footprints. Just this… cylinder. Warm to the touch.' },
     { id: 3, character: 'Officer Ravi', line: 'Captain said leave it. You’re not on this case, Kaul.' },
     { id: 4, character: 'Meera Kaul', line: 'Then log me as a witness. I’m taking it in.' },
@@ -98,14 +98,14 @@ const DIALOGUES = {
 }
 
 const STORY_STRUCTURE_DATA = [
-  { beat: 'Setup', intensity: 20 },
-  { beat: 'Inciting', intensity: 38 },
-  { beat: 'Rising', intensity: 55 },
-  { beat: 'Midpoint', intensity: 68 },
-  { beat: 'Crisis', intensity: 82 },
-  { beat: 'Climax', intensity: 95 },
-  { beat: 'Falling', intensity: 60 },
-  { beat: 'Resolution', intensity: 35 },
+  { beat: 'Setup', tension: 22, melancholy: 40, hope: 18 },
+  { beat: 'Inciting', tension: 38, melancholy: 45, hope: 22 },
+  { beat: 'Rising', tension: 55, melancholy: 42, hope: 20 },
+  { beat: 'Midpoint', tension: 68, melancholy: 58, hope: 30 },
+  { beat: 'Crisis', tension: 82, melancholy: 65, hope: 25 },
+  { beat: 'Climax', tension: 95, melancholy: 50, hope: 42 },
+  { beat: 'Falling', tension: 60, melancholy: 48, hope: 55 },
+  { beat: 'Resolution', tension: 35, melancholy: 30, hope: 72 },
 ]
 
 const AI_JUDGE_NOTES = [
@@ -117,14 +117,12 @@ const AI_JUDGE_NOTES = [
   'Pacing dips slightly in the middle section — consider trimming the second dock scene.',
 ]
 
-const WAVEFORM_BARS = [
-  12, 22, 34, 28, 45, 60, 38, 52, 70, 48, 30, 42, 66, 74, 58, 40, 26, 36, 55,
-  68, 80, 62, 44, 32, 50, 72, 64, 46, 28, 20, 38, 56, 63, 47, 33, 25, 41, 59,
-  71, 53, 37, 24, 35, 49, 61, 43, 29, 18, 27, 39, 51, 65, 77, 57, 42, 31, 23,
-  36, 54, 69, 76, 58, 40, 27, 19, 33, 48, 62, 73, 55, 39, 26, 21, 34, 46, 60,
-  70, 52, 38, 25, 17, 30, 44, 58, 67, 49, 35, 22, 29, 43, 57, 66, 50, 37, 24,
-  16, 28, 40, 53, 45,
-]
+// Dense recorder-style waveform: deterministic pseudo-random heights
+const WAVEFORM_BARS = Array.from({ length: 320 }, (_, i) => {
+  const wave = Math.sin(i * 0.35) * 22 + Math.sin(i * 0.11) * 18
+  const jitter = ((i * 7919) % 29) - 14
+  return Math.min(90, Math.max(10, 45 + wave + jitter))
+})
 
 export default function EpisodePage() {
   const { projectId, episodeId } = useParams()
@@ -165,7 +163,7 @@ export default function EpisodePage() {
 
       <div className="mx-auto max-w-[1400px] pt-20 sm:pt-24">
         <div className="mb-6">
-          <p className="text-xs font-medium tracking-[0.2em] text-[#E61C38] uppercase">
+          <p className="text-xs font-bold tracking-[0.2em] text-[#E61C38] uppercase">
             Episode {episodeId} · Preview
           </p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
@@ -176,11 +174,8 @@ export default function EpisodePage() {
         {/* Top — Audio preview */}
         <div className={`${card} mb-4 p-5 sm:p-6`}>
           <div className="min-w-0">
-            <p className="text-[11px] font-medium tracking-[0.18em] text-neutral-500 uppercase">
+            <p className="text-[11px] font-bold tracking-[0.18em] text-neutral-500 uppercase">
               Audio Preview
-            </p>
-            <p className="mt-1 truncate text-sm text-neutral-300">
-              {meta.title} · Generated narration mix
             </p>
           </div>
 
@@ -198,7 +193,7 @@ export default function EpisodePage() {
               )}
             </button>
 
-            <div className="flex h-12 min-w-0 flex-1 items-center justify-between">
+            <div className="flex h-12 min-w-0 flex-1 items-center justify-between overflow-hidden">
               {WAVEFORM_BARS.map((height, index) => {
                 const played = index / WAVEFORM_BARS.length < 0.28
                 return (
@@ -207,7 +202,7 @@ export default function EpisodePage() {
                     className={`w-[2px] shrink-0 rounded-full ${
                       played ? 'bg-[#E61C38]' : 'bg-neutral-700'
                     }`}
-                    style={{ height: `${Math.max(height, 8)}%` }}
+                    style={{ height: `${height}%` }}
                   />
                 )
               })}
@@ -221,7 +216,7 @@ export default function EpisodePage() {
           <div className={`${card} flex min-h-[420px] flex-col overflow-hidden lg:h-0 lg:min-h-full`}>
             <div className="flex shrink-0 items-center justify-between border-b border-neutral-800 px-5 py-4">
               <div>
-                <p className="text-[11px] font-medium tracking-[0.18em] text-neutral-500 uppercase">
+                <p className="text-[11px] font-bold tracking-[0.18em] text-neutral-500 uppercase">
                   Dialogues
                 </p>
                 <p className="mt-0.5 text-sm text-neutral-400">
@@ -254,11 +249,11 @@ export default function EpisodePage() {
                   {editing ? (
                     <textarea
                       defaultValue={entry.line}
-                      className="mt-2 w-full resize-y rounded-md border border-neutral-800 bg-transparent p-2 text-sm leading-6 text-neutral-300 outline-none focus:border-[#E61C38]/50"
+                      className="dialogue-line mt-2 w-full resize-y rounded-md border border-neutral-800 bg-transparent p-2 text-sm leading-6 text-neutral-300 outline-none focus:border-[#E61C38]/50"
                       rows={2}
                     />
                   ) : (
-                    <p className="mt-1.5 text-sm leading-6 text-neutral-300">
+                    <p className="dialogue-line mt-1.5 text-sm leading-6 text-neutral-300">
                       {entry.line}
                     </p>
                   )}
@@ -271,7 +266,7 @@ export default function EpisodePage() {
           <div className="flex h-fit flex-col gap-4">
             {/* Summary */}
             <div className={`${card} p-5`}>
-              <p className="text-[11px] font-medium tracking-[0.18em] text-neutral-500 uppercase">
+              <p className="text-[11px] font-bold tracking-[0.18em] text-neutral-500 uppercase">
                 Episode Summary
               </p>
               <p className="mt-3 text-sm leading-6 text-neutral-400">
@@ -281,12 +276,26 @@ export default function EpisodePage() {
 
             {/* Story structure graph */}
             <div className={`${card} p-5`}>
-              <p className="text-[11px] font-medium tracking-[0.18em] text-neutral-500 uppercase">
+              <p className="text-[11px] font-bold tracking-[0.18em] text-neutral-500 uppercase">
                 Story Structure
               </p>
               <div className="mt-3 h-44 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={STORY_STRUCTURE_DATA}>
+                  <AreaChart data={STORY_STRUCTURE_DATA}>
+                    <defs>
+                      <linearGradient id="tensionFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#E61C38" stopOpacity={0.45} />
+                        <stop offset="100%" stopColor="#E61C38" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="melancholyFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.32} />
+                        <stop offset="100%" stopColor="#60a5fa" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="hopeFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#4ade80" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="#4ade80" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid stroke="#1f1f1f" strokeDasharray="3 3" />
                     <XAxis
                       dataKey="beat"
@@ -296,23 +305,55 @@ export default function EpisodePage() {
                       interval={0}
                     />
                     <YAxis hide domain={[0, 100]} />
-                    <Line
+                    <Area
                       type="monotone"
-                      dataKey="intensity"
+                      dataKey="tension"
                       stroke="#E61C38"
+                      fill="url(#tensionFill)"
                       strokeWidth={2.5}
-                      dot={{ r: 3, fill: '#E61C38', strokeWidth: 0 }}
+                      dot={{ r: 2.5, fill: '#E61C38', strokeWidth: 0 }}
                       activeDot={false}
                       isAnimationActive
                     />
-                  </LineChart>
+                    <Area
+                      type="monotone"
+                      dataKey="melancholy"
+                      stroke="#60a5fa"
+                      fill="url(#melancholyFill)"
+                      strokeWidth={2}
+                      dot={{ r: 2.5, fill: '#60a5fa', strokeWidth: 0 }}
+                      activeDot={false}
+                      isAnimationActive
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="hope"
+                      stroke="#4ade80"
+                      fill="url(#hopeFill)"
+                      strokeWidth={2}
+                      dot={{ r: 2.5, fill: '#4ade80', strokeWidth: 0 }}
+                      activeDot={false}
+                      isAnimationActive
+                    />
+                  </AreaChart>
                 </ResponsiveContainer>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-3 text-[10px] text-neutral-500">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#E61C38]" /> Tension
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-400" /> Melancholy
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-400" /> Hope
+                </span>
               </div>
             </div>
 
             {/* AI Evaluator Judge */}
             <div className={`${card} p-5`}>
-              <p className="text-[11px] font-medium tracking-[0.18em] text-neutral-500 uppercase">
+              <p className="text-[11px] font-bold tracking-[0.18em] text-neutral-500 uppercase">
                 AI Evaluator Judge
               </p>
               <ul className="mt-4 space-y-2.5">

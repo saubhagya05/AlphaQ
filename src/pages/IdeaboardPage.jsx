@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ChevronDown, Sparkles, User, X } from 'lucide-react'
+import { ArrowLeft, Check, ChevronDown, Pause, Pencil, Play, Sparkles, User, X } from 'lucide-react'
 import PocketLogo from '../components/PocketLogo'
 import GenreRadarChart from '../components/GenreRadarChart'
-import ThemeBarChart from '../components/ThemeBarChart'
+import ThemeBarChart, { MakeChangesButton } from '../components/ThemeBarChart'
+import EmotionalCurveChart from '../components/EmotionalCurveChart'
 import IdeaRefiningLoader from '../components/IdeaRefiningLoader'
 import { ROUTES } from '../constants/routes'
 
@@ -11,6 +12,77 @@ import { ROUTES } from '../constants/routes'
 
 const PLOT_SUMMARY =
   'In the fog-drowned port city of Vardaan, disgraced detective Meera Kaul is pulled back into service when a string of impossible disappearances mirrors the case that once destroyed her. Each vanished soul leaves behind a single humming artifact and a warning written in her own forgotten handwriting, dated years into a future she has not yet lived.'
+
+const STORY_LINE =
+  'Meera is drawn back into the case that ruined her when vanishings leave behind humming artifacts and notes in her own hand. As the fog thickens and time begins to bend, she must face the author of her future — before Vardaan erases her for good.'
+
+const STORY_BEATS = [
+  'A dockworker vanishes, leaving a humming brass cylinder and a note in Meera’s handwriting — pulling her back onto a forbidden case as the disappearances multiply and Kabir surfaces with shifting motives.',
+  'A note dated three years ahead predicts the next victim, forcing Meera beneath the city to Dr. Rao’s drowned lab, where the artifacts’ true purpose — rewriting memory — is revealed.',
+  'Every thread converges at the vanishing point. Meera must choose between the future she was warned of and the past she can finally remember.',
+]
+
+const SETTING_DESC =
+  'A fog-bound port city where neon rusts into the mist and time has started to leak.'
+
+const SWOT = [
+  {
+    key: 'strengths',
+    label: 'Strengths',
+    letter: 'S',
+    color: 'text-green-400',
+    ring: 'border-green-500/40',
+    bg: 'bg-green-500/10',
+    accent: 'bg-green-400',
+    badge: 'bg-green-400/15',
+    points: [
+      'High-concept time-warning hook that rewards binge listening.',
+      'Morally grey cast anchored by a haunted, active protagonist.',
+    ],
+  },
+  {
+    key: 'weaknesses',
+    label: 'Weaknesses',
+    letter: 'W',
+    color: 'text-red-400',
+    ring: 'border-red-500/40',
+    bg: 'bg-red-500/10',
+    accent: 'bg-red-400',
+    badge: 'bg-red-400/15',
+    points: [
+      'Middle episodes lean heavily on exposition.',
+      'Supporting characters need clearer individual arcs.',
+    ],
+  },
+  {
+    key: 'opportunities',
+    label: 'Opportunities',
+    letter: 'O',
+    color: 'text-blue-400',
+    ring: 'border-blue-500/40',
+    bg: 'bg-blue-500/10',
+    accent: 'bg-blue-400',
+    badge: 'bg-blue-400/15',
+    points: [
+      'Sound-first mystery ideal for immersive audio design.',
+      'Cliffhanger structure drives strong episode-to-episode retention.',
+    ],
+  },
+  {
+    key: 'threats',
+    label: 'Threats',
+    letter: 'T',
+    color: 'text-amber-400',
+    ring: 'border-amber-500/40',
+    bg: 'bg-amber-500/10',
+    accent: 'bg-amber-400',
+    badge: 'bg-amber-400/15',
+    points: [
+      'Payoff must justify the layered mystery or lose trust.',
+      'Tone consistency is fragile across a long season.',
+    ],
+  },
+]
 
 const GENRE_TAGS = [
   { label: 'Science-Fiction', color: 'blue' },
@@ -38,6 +110,8 @@ const CHARACTERS = [
     gender: 'Female',
     role: 'Protagonist · Detective',
     traits: ['Guarded', 'Relentless', 'Haunted'],
+    persona:
+      'Female, late 30s. Lean and watchful, with tired eyes, a weathered trench coat, and a detective’s stillness that reads every room before entering it.',
     backstory:
       "Once Vardaan's most decorated investigator, Meera was disgraced after a case she cannot fully remember. She returns carrying guilt, insomnia, and an uncanny instinct for patterns others miss.",
   },
@@ -46,6 +120,8 @@ const CHARACTERS = [
     gender: 'Male',
     role: 'Informant',
     traits: ['Charming', 'Evasive', 'Loyal'],
+    persona:
+      'Male, early 30s. Wiry and quick-footed, always half-smiling, dressed in layered dockside greys that let him vanish into any crowd.',
     backstory:
       "A soft-spoken fixer who trades in secrets across the city's underbelly. Kabir knows more about Meera's lost case than he admits — and his motives shift with every tide.",
   },
@@ -54,6 +130,8 @@ const CHARACTERS = [
     gender: 'Male',
     role: 'Reclusive Scientist',
     traits: ['Brilliant', 'Paranoid', 'Obsessive'],
+    persona:
+      'Male, late 50s. Gaunt and stooped from years in the lab, with silver-streaked hair, trembling ink-stained hands, and glasses he never cleans.',
     backstory:
       'The inventor of the humming artifacts. Reyansh vanished from public life years ago; his research may be the key to the disappearances — or their cause.',
   },
@@ -62,6 +140,8 @@ const CHARACTERS = [
     gender: 'Female',
     role: 'Voice Only',
     traits: ['Warm', 'Absent', 'Guiding'],
+    persona:
+      'Female, 60s. Never seen — only a warm, unhurried voice with a faint coastal accent, carried through crackling voicemails and half-remembered lullabies.',
     backstory:
       "Heard only through old voicemails and memory fragments, Asha is Meera's emotional north star — the reason she keeps walking into the fog.",
   },
@@ -102,7 +182,7 @@ const EPISODES = [
 
 /* ----------------------------- Primitives ----------------------------- */
 
-function Modal({ open, onClose, children, size = 'md' }) {
+function Modal({ open, onClose, children, size = 'md', tall = false, leaveChatBar = false }) {
   useEffect(() => {
     if (!open) return
     const onKey = (e) => { if (e.key === 'Escape') onClose() }
@@ -116,17 +196,46 @@ function Modal({ open, onClose, children, size = 'md' }) {
 
   if (!open) return null
 
-  const maxW = size === '70vw' ? 'w-[70vw] max-w-[70vw]' : size === '4xl' ? 'max-w-4xl' : size === '6xl' ? 'max-w-6xl' : size === '5xl' ? 'max-w-5xl' : size === '3xl' ? 'max-w-3xl' : size === '2xl' ? 'max-w-2xl' : 'max-w-xl'
+  const maxW =
+    size === '70vw'
+      ? 'w-[70vw] max-w-[70vw]'
+      : size === '4xl'
+        ? 'max-w-4xl'
+        : size === '6xl'
+          ? 'max-w-6xl'
+          : size === '5xl'
+            ? 'max-w-5xl'
+            : size === '3xl'
+              ? 'max-w-3xl'
+              : size === '2xl'
+                ? 'max-w-2xl'
+                : size === 'lg'
+                  ? 'max-w-lg'
+                  : 'max-w-xl'
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+      className={`fixed inset-0 z-[80] flex justify-center p-4 ${
+        leaveChatBar
+          ? 'items-start pt-10 pb-28 sm:pt-14 sm:pb-32'
+          : 'items-center'
+      }`}
       onMouseDown={onClose}
     >
-      <div className="absolute inset-0 bg-black/85" />
+      <div
+        className={`absolute inset-0 bg-black/85 ${
+          leaveChatBar ? 'bottom-24 sm:bottom-28' : ''
+        }`}
+      />
       <div
         onMouseDown={(e) => e.stopPropagation()}
-        className={`relative z-10 w-full ${maxW} max-h-[85vh] overflow-y-auto rounded-xl border border-neutral-800 bg-[#0A0A0A] p-6 sm:p-8`}
+        className={`relative z-10 w-full ${maxW} overflow-y-auto rounded-xl border border-neutral-800 bg-[#0A0A0A] p-6 sm:p-8 ${
+          tall
+            ? leaveChatBar
+              ? 'min-h-[60vh] max-h-[calc(100vh-11rem)]'
+              : 'min-h-[75vh] max-h-[92vh]'
+            : 'max-h-[85vh]'
+        }`}
       >
         <button
           type="button"
@@ -150,6 +259,47 @@ function CardHeading({ children }) {
   )
 }
 
+function EditIconButton({ label, editing, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-lg border p-2 transition-colors ${
+        editing
+          ? 'border-[#E61C38]/60 bg-[#E61C38]/10 text-[#E61C38]'
+          : 'border-neutral-800 text-neutral-400 hover:border-[#E61C38]/60 hover:text-white'
+      }`}
+      aria-label={label}
+      title={label}
+    >
+      {editing ? (
+        <Check className="h-3.5 w-3.5" strokeWidth={2} />
+      ) : (
+        <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+      )}
+    </button>
+  )
+}
+
+/** Pixelated red drop-cap on each word’s first letter — same style as Genre/Theme. */
+function PixelHeading({ words }) {
+  return (
+    <h3
+      className="shrink-0 font-sans text-xl font-bold tracking-tight text-white sm:text-2xl"
+      style={{ textShadow: '0 0 8px rgba(230, 28, 56, 0.35)' }}
+    >
+      {words.map((word, i) => (
+        <span key={`${word}-${i}`} className={i > 0 ? 'ml-2' : undefined}>
+          <span className="ideaboard-title-board font-normal text-[1.15em] text-[#E61C38] normal-case">
+            {word.charAt(0)}
+          </span>
+          <span>{word.slice(1)}</span>
+        </span>
+      ))}
+    </h3>
+  )
+}
+
 const TAG_COLORS = {
   blue: 'text-blue-400',
   red: 'text-red-400',
@@ -165,6 +315,49 @@ function Tag({ label, color = 'neutral' }) {
     >
       {label}
     </span>
+  )
+}
+
+// Dense recorder-style waveform, same as the episode audio preview
+const VOICE_WAVEFORM_BARS = Array.from({ length: 160 }, (_, i) => {
+  const wave = Math.sin(i * 0.35) * 22 + Math.sin(i * 0.11) * 18
+  const jitter = ((i * 7919) % 29) - 14
+  return Math.min(90, Math.max(10, 45 + wave + jitter))
+})
+
+function VoicePreview() {
+  const [playing, setPlaying] = useState(false)
+
+  return (
+    <div className="mt-4 flex items-center gap-4">
+      <button
+        type="button"
+        onClick={() => setPlaying((v) => !v)}
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E61C38] text-white shadow-[0_0_24px_rgba(230,28,56,0.35)] transition-transform hover:scale-105"
+        aria-label={playing ? 'Pause' : 'Play'}
+      >
+        {playing ? (
+          <Pause className="h-5 w-5" fill="currentColor" />
+        ) : (
+          <Play className="ml-0.5 h-5 w-5" fill="currentColor" />
+        )}
+      </button>
+
+      <div className="flex h-12 min-w-0 flex-1 items-center justify-between overflow-hidden">
+        {VOICE_WAVEFORM_BARS.map((height, index) => {
+          const played = index / VOICE_WAVEFORM_BARS.length < 0.28
+          return (
+            <span
+              key={index}
+              className={`w-[2px] shrink-0 rounded-full ${
+                played ? 'bg-[#E61C38]' : 'bg-neutral-700'
+              }`}
+              style={{ height: `${height}%` }}
+            />
+          )
+        })}
+      </div>
+    </div>
   )
 }
 
@@ -189,10 +382,35 @@ export default function IdeaboardPage() {
   const { projectId } = useParams()
   const navigate = useNavigate()
   const [modal, setModal] = useState(null)
+  const [plotVisualise, setPlotVisualise] = useState(false)
+  const [storyLine, setStoryLine] = useState(STORY_LINE)
+  const [storyBeats, setStoryBeats] = useState(STORY_BEATS)
+  const [settingText, setSettingText] = useState(SETTING_DESC)
+  const [committedStoryLine, setCommittedStoryLine] = useState(STORY_LINE)
+  const [committedStoryBeats, setCommittedStoryBeats] = useState(STORY_BEATS)
+  const [committedSettingText, setCommittedSettingText] = useState(SETTING_DESC)
+  const [editingStory, setEditingStory] = useState(false)
+  const [editingSetting, setEditingSetting] = useState(false)
   const [activeCharacter, setActiveCharacter] = useState(null)
   const [openEpisode, setOpenEpisode] = useState(1)
   const [refinePrompt, setRefinePrompt] = useState('')
   const [isRefining, setIsRefining] = useState(false)
+
+  const storyDirty =
+    storyLine !== committedStoryLine ||
+    storyBeats.some((beat, i) => beat !== committedStoryBeats[i])
+  const settingDirty = settingText !== committedSettingText
+
+  const applyStoryChanges = () => {
+    setCommittedStoryLine(storyLine)
+    setCommittedStoryBeats([...storyBeats])
+    setEditingStory(false)
+  }
+
+  const applySettingChanges = () => {
+    setCommittedSettingText(settingText)
+    setEditingSetting(false)
+  }
 
   const handleRefine = () => {
     if (!refinePrompt.trim()) return
@@ -231,10 +449,10 @@ export default function IdeaboardPage() {
         {/* Page title */}
         <div className="mb-6 flex flex-col items-center justify-center text-center">
           <h1 className="flex items-center justify-center gap-3 text-4xl sm:text-5xl md:text-6xl">
-            <span className="ideaboard-title-idea font-bold tracking-tight text-white">Idea</span>
+            <span className="ideaboard-title-idea text-[1.15em] tracking-[-0.05em] text-white uppercase">Idea</span>
             <span className="ideaboard-title-board text-[1.15em] tracking-[-0.05em] text-[#E61C38] uppercase">BOARD</span>
           </h1>
-          <p className="mt-2 text-sm text-neutral-500">
+          <p className="mt-2 font-mono text-sm font-bold text-white">
             The Last Train Home — Project #{projectId}
           </p>
         </div>
@@ -251,7 +469,7 @@ export default function IdeaboardPage() {
               onClick={() => setModal('plot')}
               className={`${card} flex w-full flex-col p-6 text-left`}
             >
-              <CardHeading>Plot &amp; Setting</CardHeading>
+              <CardHeading>Plot and Structure</CardHeading>
               <p className="mt-4 line-clamp-3 text-sm leading-6 text-neutral-400">
                 {PLOT_SUMMARY}
               </p>
@@ -410,8 +628,145 @@ export default function IdeaboardPage() {
       {/* ---- Modals ---- */}
 
       <Modal open={modal === 'plot'} onClose={() => setModal(null)} size="70vw">
-        <CardHeading>Plot &amp; Setting</CardHeading>
-        <p className="mt-4 text-sm leading-7 text-neutral-300">{PLOT_SUMMARY}</p>
+        <div className="flex items-center gap-4 pr-10">
+          <PixelHeading words={['Story', 'Line']} />
+          <button
+            type="button"
+            onClick={() => setPlotVisualise((v) => !v)}
+            className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold tracking-wide transition-colors ${
+              plotVisualise
+                ? 'border-[#E61C38] bg-[#E61C38]/15 text-[#E61C38]'
+                : 'border-neutral-700 text-neutral-300 hover:border-[#E61C38]/60 hover:text-white'
+            }`}
+          >
+            <Sparkles className="h-3.5 w-3.5" strokeWidth={2} />
+            Visualise
+          </button>
+          <EditIconButton
+            label={editingStory ? 'Save story line' : 'Edit story line'}
+            editing={editingStory}
+            onClick={() => setEditingStory((value) => !value)}
+          />
+        </div>
+
+        <div className="mt-5">
+          <div className="max-w-3xl">
+            {editingStory ? (
+              <textarea
+                value={storyLine}
+                onChange={(event) => setStoryLine(event.target.value)}
+                rows={3}
+                className="w-full resize-y rounded-lg border border-neutral-700 bg-black/40 px-4 py-3 text-sm leading-7 text-neutral-200 outline-none transition-colors focus:border-[#E61C38]/70"
+                aria-label="Story line introduction"
+              />
+            ) : (
+              <p className="text-sm leading-7 text-neutral-300">{storyLine}</p>
+            )}
+            <ul className="mt-5 space-y-3.5">
+              {storyBeats.map((beat, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#E61C38]" />
+                  {editingStory ? (
+                    <textarea
+                      value={beat}
+                      onChange={(event) =>
+                        setStoryBeats((beats) =>
+                          beats.map((item, index) =>
+                            index === i ? event.target.value : item,
+                          ),
+                        )
+                      }
+                      rows={2}
+                      className="w-full resize-y rounded-lg border border-neutral-700 bg-black/40 px-3 py-2 text-sm leading-6 text-neutral-300 outline-none transition-colors focus:border-[#E61C38]/70"
+                      aria-label={`Story beat ${i + 1}`}
+                    />
+                  ) : (
+                    <p className="text-sm leading-6 text-neutral-400">{beat}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+          {storyDirty && (
+            <div className="mt-4 flex justify-end">
+              <MakeChangesButton onClick={applyStoryChanges} />
+            </div>
+          )}
+        </div>
+
+        <div className="mt-10 border-t border-neutral-800 pt-8">
+          <div className="flex items-center gap-4">
+            <PixelHeading words={['Setting']} />
+            <EditIconButton
+              label={editingSetting ? 'Save setting' : 'Edit setting'}
+              editing={editingSetting}
+              onClick={() => setEditingSetting((value) => !value)}
+            />
+          </div>
+          {editingSetting ? (
+            <textarea
+              value={settingText}
+              onChange={(event) => setSettingText(event.target.value)}
+              rows={2}
+              className="mt-4 w-full max-w-3xl resize-y rounded-lg border border-neutral-700 bg-black/40 px-4 py-3 text-sm leading-7 text-neutral-200 outline-none transition-colors focus:border-[#E61C38]/70"
+              aria-label="Setting description"
+            />
+          ) : (
+            <p className="mt-4 max-w-3xl text-sm leading-7 text-neutral-300">
+              {settingText}
+            </p>
+          )}
+          {settingDirty && (
+            <div className="mt-4 flex justify-end">
+              <MakeChangesButton onClick={applySettingChanges} />
+            </div>
+          )}
+        </div>
+
+        {/* SWOT matrix — always visible below Setting */}
+        <div className="mt-10 border-t border-neutral-800 pt-8">
+          <h4 className="text-xs font-bold tracking-widest text-neutral-500 uppercase">
+            SWOT Analysis · Literature
+          </h4>
+          <div className="relative mt-5 grid max-w-4xl grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-0">
+            {/* Crosshair lines for classic SWOT look on desktop */}
+            <div className="pointer-events-none absolute inset-0 hidden sm:block">
+              <div className="absolute top-0 bottom-0 left-1/2 w-px -translate-x-1/2 bg-neutral-700" />
+              <div className="absolute right-0 left-0 top-1/2 h-px -translate-y-1/2 bg-neutral-700" />
+            </div>
+
+            {SWOT.map((quad) => (
+              <div
+                key={quad.key}
+                className={`relative ${quad.bg} border ${quad.ring} p-4 sm:border-0 sm:p-5`}
+              >
+                <div className="mb-3 flex items-center gap-2.5">
+                  <span
+                    className={`flex h-8 w-8 items-center justify-center rounded-md text-sm font-bold ${quad.badge} ${quad.color}`}
+                  >
+                    {quad.letter}
+                  </span>
+                  <p className={`text-sm font-bold tracking-wide ${quad.color}`}>
+                    {quad.label}
+                  </p>
+                </div>
+                <ul className="space-y-2">
+                  {quad.points.map((point) => (
+                    <li
+                      key={point}
+                      className="flex items-start gap-2 text-xs leading-5 text-neutral-400"
+                    >
+                      <span
+                        className={`mt-1.5 h-1 w-1 shrink-0 rounded-full ${quad.accent}`}
+                      />
+                      {point}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
       </Modal>
 
       <Modal open={modal === 'genre'} onClose={() => setModal(null)} size="70vw">
@@ -441,13 +796,13 @@ export default function IdeaboardPage() {
 
       <Modal open={modal === 'theme'} onClose={() => setModal(null)} size="70vw">
         <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex w-full flex-col pt-20 pl-6 lg:w-1/3 lg:pt-32 lg:pl-12 xl:w-2/5">
+          <div className="flex w-full flex-col pt-8 pl-6 lg:w-1/3 lg:pt-16 lg:pl-12 xl:w-2/5">
             <div className="flex flex-col items-start gap-6">
               <h3 
                 className="shrink-0 font-sans text-7xl font-bold tracking-tight text-white" 
                 style={{ textShadow: '0 0 10px rgba(230, 28, 56, 0.4)' }}
               >
-                <span className="ideaboard-title-board font-normal text-[1.15em] text-[#E61C38] normal-case">t</span>
+                <span className="ideaboard-title-board font-normal text-[1.15em] text-[#E61C38] normal-case">T</span>
                 <span>heme</span>
               </h3>
               <div className="grid w-fit grid-cols-2 gap-3">
@@ -458,8 +813,16 @@ export default function IdeaboardPage() {
             </div>
             <p className="mt-8 text-sm leading-6 text-neutral-400">{THEME_DESC}</p>
           </div>
-          <div className="w-full lg:w-2/3 xl:w-3/5 pt-16">
+          <div className="w-full lg:w-2/3 xl:w-3/5 pt-4">
             <ThemeBarChart />
+            <div className="mt-8 border-l border-neutral-800 pl-4">
+              <p className="text-[11px] font-bold tracking-[0.18em] text-neutral-500 uppercase">
+                Emotional Curve · Full Plot
+              </p>
+              <div className="mt-3">
+                <EmotionalCurveChart idPrefix="theme-plot-curve" />
+              </div>
+            </div>
           </div>
         </div>
       </Modal>
@@ -467,7 +830,9 @@ export default function IdeaboardPage() {
       <Modal
         open={activeCharacter !== null}
         onClose={() => setActiveCharacter(null)}
-        size="70vw"
+        size="lg"
+        tall
+        leaveChatBar
       >
         {activeCharacter !== null && (
           <div>
@@ -499,11 +864,27 @@ export default function IdeaboardPage() {
 
             <div className="mt-5 border-t border-neutral-800 pt-5">
               <p className="text-xs font-bold tracking-widest text-neutral-500 uppercase">
+                Physical Persona
+              </p>
+              <p className="mt-2 text-sm leading-6 text-neutral-300">
+                {CHARACTERS[activeCharacter].persona}
+              </p>
+            </div>
+
+            <div className="mt-5 border-t border-neutral-800 pt-5">
+              <p className="text-xs font-bold tracking-widest text-neutral-500 uppercase">
                 Backstory
               </p>
               <p className="mt-2 text-sm leading-6 text-neutral-300">
                 {CHARACTERS[activeCharacter].backstory}
               </p>
+            </div>
+
+            <div className="mt-5 border-t border-neutral-800 pt-5">
+              <p className="text-xs font-bold tracking-widest text-neutral-500 uppercase">
+                Voice Preview
+              </p>
+              <VoicePreview key={activeCharacter} />
             </div>
           </div>
         )}
@@ -512,8 +893,8 @@ export default function IdeaboardPage() {
       {/* Refining loader — full-screen, shown while AI processes */}
       {isRefining && <IdeaRefiningLoader />}
 
-      {/* AI Chat Bar Sticky at Bottom */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-black via-black to-transparent pt-12 pb-6 px-4 pointer-events-none">
+      {/* AI Chat Bar Sticky at Bottom — above character modal so it stays usable */}
+      <div className="fixed bottom-0 left-0 right-0 z-[90] bg-gradient-to-t from-black via-black to-transparent pt-12 pb-6 px-4 pointer-events-none">
         <div className="mx-auto max-w-[800px] relative flex items-center shadow-[0_0_30px_rgba(230,28,56,0.12)] rounded-full pointer-events-auto">
            <input
              type="text"

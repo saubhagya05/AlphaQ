@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronRight, Loader2, Sparkles } from 'lucide-react'
+import { ChevronRight, Loader2, Sparkles, X } from 'lucide-react'
 
 /* ─── Mock data (replace with LLM-generated questions later) ─── */
 
@@ -88,9 +88,10 @@ export default function StoryQuestionsModal({ onComplete, onClose }) {
             <button
               type="button"
               onClick={onClose}
-              className="text-xs font-medium text-neutral-600 transition-colors hover:text-neutral-400"
+              className="rounded-md p-1.5 text-neutral-500 transition-colors hover:bg-neutral-900 hover:text-white"
+              aria-label="Close"
             >
-              Skip all →
+              <X className="h-4 w-4" strokeWidth={2} />
             </button>
           </div>
 

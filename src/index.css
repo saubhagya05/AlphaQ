@@ -21,11 +21,6 @@ body,
 
 .ideaboard-title {
   font-style: normal;
-  filter:
-    drop-shadow(0 0 1px rgba(255, 255, 255, 1))
-    drop-shadow(0 0 3px rgba(255, 120, 150, 1))
-    drop-shadow(0 0 6px rgba(255, 60, 100, 0.95))
-    drop-shadow(0 0 10px rgba(230, 28, 56, 0.85));
 }
 
 .ideaboard-title-idea,
@@ -37,15 +32,16 @@ body,
 }
 
 .ideaboard-title-idea {
-  font-family: "Satisfy", "Segoe Script", "Apple Chancery", cursive;
-  font-weight: 400;
-  letter-spacing: 0.04em;
+  font-family: "DM Sans", sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .ideaboard-title-board {
-  font-family: "Satisfy", "Segoe Script", "Apple Chancery", cursive;
+  font-family: "Silkscreen", "VT323", "Press Start 2P", monospace;
   font-weight: 400;
-  letter-spacing: 0;
+  color: #E61C38;
+  letter-spacing: -0.05em;
 }
 
 .ideaboard-title-word {
@@ -55,9 +51,9 @@ body,
 }
 
 .genre-display-heading {
-  font-family: "Satisfy", "Segoe Script", "Apple Chancery", cursive;
-  font-weight: 400;
-  letter-spacing: 0.04em;
+  font-family: "DM Sans", sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   color: #ffffff;
   text-shadow: none;
   filter: none;

@@ -6,6 +6,7 @@ import GenreRadarChart from '../components/GenreRadarChart'
 import ThemeBarChart, { MakeChangesButton } from '../components/ThemeBarChart'
 import EmotionalCurveChart from '../components/EmotionalCurveChart'
 import IdeaRefiningLoader from '../components/IdeaRefiningLoader'
+import AILoadingScreen from '../AILoadingScreen.jsx'
 import { ROUTES } from '../constants/routes'
 
 /* ----------------------------- Mock data ----------------------------- */
@@ -602,6 +603,7 @@ export default function IdeaboardPage() {
   const [openEpisode, setOpenEpisode] = useState(1)
   const [refinePrompt, setRefinePrompt] = useState('')
   const [isRefining, setIsRefining] = useState(false)
+  const [generatingEpisode, setGeneratingEpisode] = useState(null)
 
   const storyDirty =
     storyLine !== committedStoryLine ||
@@ -619,15 +621,21 @@ export default function IdeaboardPage() {
     setEditingSetting(false)
   }
 
+  // Refining the whole board → the original carton loader.
   const handleRefine = () => {
     if (!refinePrompt.trim()) return
     setIsRefining(true)
     setRefinePrompt('')
-    setTimeout(() => setIsRefining(false), 5000)
+    setTimeout(() => setIsRefining(false), 8000)
   }
 
+  // Generating a single episode → the whisper/pipeline loader, then open it.
   const handleGenerate = (episode) => {
-    navigate(ROUTES.episode(projectId, episode.id))
+    setGeneratingEpisode(episode.id)
+    setTimeout(() => {
+      setGeneratingEpisode(null)
+      navigate(ROUTES.episode(projectId, episode.id))
+    }, 5000)
   }
 
   return (
@@ -725,7 +733,9 @@ export default function IdeaboardPage() {
             {/* 3. Characters */}
             <div>
               <div className="mb-3 flex items-center justify-between">
-                <CardHeading>Characters</CardHeading>
+                <div className="ml-[25px]">
+                  <CardHeading>Characters</CardHeading>
+                </div>
                 <span className="text-xs text-neutral-600">
                   {CHARACTERS.length} cast members
                 </span>
@@ -1097,8 +1107,15 @@ export default function IdeaboardPage() {
         )}
       </Modal>
 
-      {/* Refining loader — full-screen, shown while AI processes */}
-      {isRefining && <IdeaRefiningLoader />}
+      {/* Refine board → original carton loader (full-screen overlay) */}
+      {isRefining && (
+        <div className="fixed inset-0 z-[100]">
+          <AILoadingScreen />
+        </div>
+      )}
+
+      {/* Generate episode → whisper/pipeline loader */}
+      {generatingEpisode !== null && <IdeaRefiningLoader />}
 
       {/* AI Chat Bar Sticky at Bottom — above character modal so it stays usable */}
       <div className="fixed bottom-0 left-0 right-0 z-[90] bg-gradient-to-t from-black via-black to-transparent pt-12 pb-6 px-4 pointer-events-none">

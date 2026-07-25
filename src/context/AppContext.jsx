@@ -9,6 +9,8 @@ const INITIAL_PROJECTS = [
     type: 'Audio story',
     updated: 'Edited 2 hours ago',
     accent: 'from-[#5c101e] via-[#26090f] to-[#111111]',
+    cover:
+      'https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&w=800&q=80',
   },
   {
     id: 2,
@@ -16,6 +18,8 @@ const INITIAL_PROJECTS = [
     type: 'Written story',
     updated: 'Edited yesterday',
     accent: 'from-[#3c1724] via-[#1d1016] to-[#111111]',
+    cover:
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80',
   },
 ]
 

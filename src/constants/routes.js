@@ -5,4 +5,6 @@ export const ROUTES = {
   WRITE: '/studio/write',
   IDEABOARD: '/ideaboard',
   ideaboard: (projectId) => `/ideaboard/${projectId}`,
+  episode: (projectId, episodeId) =>
+    `/ideaboard/${projectId}/episode/${episodeId}`,
 }

@@ -2,6 +2,7 @@ import { Navigate } from 'react-router-dom'
 import { createBrowserRouter } from 'react-router-dom'
 import AppLayout from './layouts/AppLayout'
 import DashboardPage from './pages/DashboardPage'
+import EpisodePage from './pages/EpisodePage'
 import IdeaboardPage from './pages/IdeaboardPage'
 import SpeakPage from './pages/SpeakPage'
 import StudioHomePage from './pages/StudioHomePage'
@@ -29,6 +30,10 @@ export const router = createBrowserRouter([
       {
         path: 'ideaboard/:projectId',
         element: <IdeaboardPage />,
+      },
+      {
+        path: 'ideaboard/:projectId/episode/:episodeId',
+        element: <EpisodePage />,
       },
       {
         path: 'studio',

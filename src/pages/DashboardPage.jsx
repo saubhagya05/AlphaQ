@@ -19,13 +19,21 @@ export default function DashboardPage() {
 
       <div className="relative mx-auto max-w-7xl">
         <div className="mb-9">
-          <p className="text-sm font-medium tracking-[0.2em] text-[#E61C38] uppercase">
+          <p
+            className="text-base font-medium tracking-[0.2em] text-[#E61C38] uppercase sm:text-lg"
+            style={{ fontFamily: "'JetBrains Mono', monospace" }}
+          >
             Creator workspace
           </p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+          <h2
+            className="mt-3 text-5xl font-bold tracking-tight text-white sm:text-6xl"
+          >
             Your stories
           </h2>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-white/40">
+          <p
+            className="mt-3 max-w-xl text-sm leading-6 text-white/40"
+            style={{ fontFamily: "'JetBrains Mono', monospace" }}
+          >
             Continue an existing story or start something new.
           </p>
         </div>

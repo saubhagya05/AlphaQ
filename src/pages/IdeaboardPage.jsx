@@ -318,45 +318,252 @@ function Tag({ label, color = 'neutral' }) {
   )
 }
 
-// Dense recorder-style waveform, same as the episode audio preview
-const VOICE_WAVEFORM_BARS = Array.from({ length: 160 }, (_, i) => {
-  const wave = Math.sin(i * 0.35) * 22 + Math.sin(i * 0.11) * 18
-  const jitter = ((i * 7919) % 29) - 14
-  return Math.min(90, Math.max(10, 45 + wave + jitter))
-})
+function formatVoiceTime(seconds) {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins}:${String(secs).padStart(2, '0')}`
+}
+
+const VOICE_TOTAL_SECONDS = 120 // 2:00
+
+/** Siri-style voice catalog: accent → numbered voices */
+const SIRI_VOICE_OPTIONS = [
+  {
+    accent: 'American',
+    voices: [
+      { id: 'us-1', label: 'Voice 1', detail: 'Female' },
+      { id: 'us-2', label: 'Voice 2', detail: 'Male' },
+      { id: 'us-3', label: 'Voice 3', detail: 'Female' },
+      { id: 'us-4', label: 'Voice 4', detail: 'Male' },
+    ],
+  },
+  {
+    accent: 'British',
+    voices: [
+      { id: 'uk-1', label: 'Voice 1', detail: 'Female' },
+      { id: 'uk-2', label: 'Voice 2', detail: 'Male' },
+      { id: 'uk-3', label: 'Voice 3', detail: 'Female' },
+      { id: 'uk-4', label: 'Voice 4', detail: 'Male' },
+    ],
+  },
+  {
+    accent: 'Australian',
+    voices: [
+      { id: 'au-1', label: 'Voice 1', detail: 'Female' },
+      { id: 'au-2', label: 'Voice 2', detail: 'Male' },
+      { id: 'au-3', label: 'Voice 3', detail: 'Female' },
+      { id: 'au-4', label: 'Voice 4', detail: 'Male' },
+    ],
+  },
+  {
+    accent: 'Indian',
+    voices: [
+      { id: 'in-1', label: 'Voice 1', detail: 'Female' },
+      { id: 'in-2', label: 'Voice 2', detail: 'Male' },
+      { id: 'in-3', label: 'Voice 3', detail: 'Female' },
+      { id: 'in-4', label: 'Voice 4', detail: 'Male' },
+    ],
+  },
+  {
+    accent: 'Irish',
+    voices: [
+      { id: 'ie-1', label: 'Voice 1', detail: 'Female' },
+      { id: 'ie-2', label: 'Voice 2', detail: 'Male' },
+    ],
+  },
+  {
+    accent: 'South African',
+    voices: [
+      { id: 'za-1', label: 'Voice 1', detail: 'Female' },
+      { id: 'za-2', label: 'Voice 2', detail: 'Male' },
+    ],
+  },
+]
 
 function VoicePreview() {
   const [playing, setPlaying] = useState(false)
+  const [elapsed, setElapsed] = useState(0)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [selectedAccent, setSelectedAccent] = useState(SIRI_VOICE_OPTIONS[0].accent)
+  const [selectedVoiceId, setSelectedVoiceId] = useState(null)
+  const [previewingId, setPreviewingId] = useState(null)
+
+  useEffect(() => {
+    if (!playing) return undefined
+    const id = window.setInterval(() => {
+      setElapsed((current) => {
+        if (current >= VOICE_TOTAL_SECONDS) {
+          setPlaying(false)
+          return VOICE_TOTAL_SECONDS
+        }
+        return current + 1
+      })
+    }, 1000)
+    return () => window.clearInterval(id)
+  }, [playing])
+
+  useEffect(() => {
+    if (!previewingId) return undefined
+    const id = window.setTimeout(() => setPreviewingId(null), 1600)
+    return () => window.clearTimeout(id)
+  }, [previewingId])
+
+  const selectedVoice = SIRI_VOICE_OPTIONS.flatMap((group) =>
+    group.voices.map((voice) => ({ ...voice, accent: group.accent })),
+  ).find((voice) => voice.id === selectedVoiceId)
+
+  const activeGroup =
+    SIRI_VOICE_OPTIONS.find((group) => group.accent === selectedAccent) ??
+    SIRI_VOICE_OPTIONS[0]
 
   return (
-    <div className="mt-4 flex items-center gap-4">
-      <button
-        type="button"
-        onClick={() => setPlaying((v) => !v)}
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E61C38] text-white shadow-[0_0_24px_rgba(230,28,56,0.35)] transition-transform hover:scale-105"
-        aria-label={playing ? 'Pause' : 'Play'}
-      >
-        {playing ? (
-          <Pause className="h-5 w-5" fill="currentColor" />
-        ) : (
-          <Play className="ml-0.5 h-5 w-5" fill="currentColor" />
-        )}
-      </button>
+    <div className="mt-4 space-y-3">
+      <div className="flex flex-wrap items-center gap-4">
+        <button
+          type="button"
+          onClick={() => {
+            if (elapsed >= VOICE_TOTAL_SECONDS) setElapsed(0)
+            setPlaying((value) => !value)
+          }}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E61C38] text-white shadow-[0_0_24px_rgba(230,28,56,0.35)] transition-transform hover:scale-105"
+          aria-label={playing ? 'Pause' : 'Play'}
+        >
+          {playing ? (
+            <Pause className="h-5 w-5" fill="currentColor" />
+          ) : (
+            <Play className="ml-0.5 h-5 w-5" fill="currentColor" />
+          )}
+        </button>
 
-      <div className="flex h-12 min-w-0 flex-1 items-center justify-between overflow-hidden">
-        {VOICE_WAVEFORM_BARS.map((height, index) => {
-          const played = index / VOICE_WAVEFORM_BARS.length < 0.28
-          return (
-            <span
-              key={index}
-              className={`w-[2px] shrink-0 rounded-full ${
-                played ? 'bg-[#E61C38]' : 'bg-neutral-700'
-              }`}
-              style={{ height: `${height}%` }}
-            />
-          )
-        })}
+        <span className="font-mono text-sm tabular-nums text-neutral-300">
+          {formatVoiceTime(elapsed)}
+          <span className="text-neutral-600"> / </span>
+          {formatVoiceTime(VOICE_TOTAL_SECONDS)}
+        </span>
+
+        <button
+          type="button"
+          onClick={() => setPickerOpen(true)}
+          className="inline-flex min-w-0 items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-2.5 text-left transition-colors hover:border-neutral-600"
+        >
+          <span
+            className={`truncate text-sm ${
+              selectedVoice ? 'text-white' : 'text-neutral-500'
+            }`}
+          >
+            {selectedVoice
+              ? `${selectedVoice.accent} · ${selectedVoice.label}`
+              : 'Choose Voice'}
+          </span>
+          <ChevronDown className="h-4 w-4 shrink-0 text-neutral-500" strokeWidth={1.75} />
+        </button>
       </div>
+
+      {pickerOpen && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4"
+          onMouseDown={() => setPickerOpen(false)}
+        >
+          <div className="absolute inset-0 bg-black/80" />
+          <div
+            onMouseDown={(e) => e.stopPropagation()}
+            className="relative z-10 flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-neutral-800 bg-[#0A0A0A] shadow-[0_0_40px_rgba(0,0,0,0.6)]"
+          >
+            <div className="flex items-center justify-between border-b border-neutral-800 px-5 py-4">
+              <h4 className="text-base font-bold text-white">Choose a Voice</h4>
+              <button
+                type="button"
+                onClick={() => setPickerOpen(false)}
+                className="rounded-md p-1.5 text-neutral-500 transition-colors hover:bg-neutral-900 hover:text-white"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" strokeWidth={2} />
+              </button>
+            </div>
+
+            {/* Accent tabs — like Siri language/accent list */}
+            <div className="flex gap-2 overflow-x-auto border-b border-neutral-800 px-4 py-3">
+              {SIRI_VOICE_OPTIONS.map((group) => {
+                const active = group.accent === selectedAccent
+                return (
+                  <button
+                    key={group.accent}
+                    type="button"
+                    onClick={() => setSelectedAccent(group.accent)}
+                    className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      active
+                        ? 'bg-[#E61C38]/15 text-[#E61C38]'
+                        : 'bg-neutral-900 text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    {group.accent}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Voice list — Voice 1 / 2 / 3… with sample play */}
+            <div className="min-h-0 flex-1 overflow-y-auto p-2">
+              {activeGroup.voices.map((voice) => {
+                const selected = selectedVoiceId === voice.id
+                const previewing = previewingId === voice.id
+                return (
+                  <div
+                    key={voice.id}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-3 transition-colors ${
+                      selected ? 'bg-[#E61C38]/10' : 'hover:bg-white/[0.03]'
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setPreviewingId(voice.id)}
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                        previewing
+                          ? 'border-[#E61C38] bg-[#E61C38] text-white'
+                          : 'border-neutral-700 text-neutral-300 hover:border-[#E61C38]/60 hover:text-white'
+                      }`}
+                      aria-label={`Preview ${voice.label}`}
+                    >
+                      {previewing ? (
+                        <Pause className="h-3.5 w-3.5" fill="currentColor" />
+                      ) : (
+                        <Play className="ml-0.5 h-3.5 w-3.5" fill="currentColor" />
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedVoiceId(voice.id)
+                        setSelectedAccent(activeGroup.accent)
+                      }}
+                      className="min-w-0 flex-1 text-left"
+                    >
+                      <p className="text-sm font-semibold text-white">{voice.label}</p>
+                      <p className="text-xs text-neutral-500">{voice.detail}</p>
+                    </button>
+
+                    {selected && (
+                      <Check className="h-4 w-4 shrink-0 text-[#E61C38]" strokeWidth={2.5} />
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="border-t border-neutral-800 p-4">
+              <button
+                type="button"
+                disabled={!selectedVoiceId}
+                onClick={() => setPickerOpen(false)}
+                className="w-full rounded-xl bg-[#E61C38] py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-35"
+              >
+                Use This Voice
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

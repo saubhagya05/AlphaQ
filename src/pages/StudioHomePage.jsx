@@ -6,17 +6,25 @@ export default function StudioHomePage() {
   const navigate = useNavigate()
 
   return (
-    <section className="relative flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center overflow-hidden px-6">
-      <div className="pointer-events-none absolute inset-0 bg-black" />
+    <section className="relative flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center overflow-hidden bg-black px-6">
 
-      <div className="relative z-10 flex items-center justify-center gap-16 md:gap-28">
+      {/* Natural prompt line */}
+      <p
+        className="mb-16 text-sm text-white/30 tracking-wide"
+        style={{ fontFamily: "'JetBrains Mono', monospace" }}
+      >
+        I want to start a new story by...
+      </p>
+
+      {/* Two icon tiles */}
+      <div className="flex items-end justify-center gap-20 md:gap-32">
         <ActionTile
-          icon={<VintageMicIcon className="h-24 w-16" />}
+          icon={<VintageMicIcon className="h-20 w-14" />}
           label="Speak"
           onClick={() => navigate(ROUTES.SPEAK)}
         />
         <ActionTile
-          icon={<WriteStoryIcon className="h-24 w-20" />}
+          icon={<WriteStoryIcon className="h-20 w-16" />}
           label="Write"
           onClick={() => navigate(ROUTES.WRITE)}
         />
@@ -28,13 +36,16 @@ export default function StudioHomePage() {
 function ActionTile({ icon, label, onClick }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className="group flex flex-col items-center gap-5 px-4 py-4 transition-transform duration-300 hover:-translate-y-1"
+      className="group flex flex-col items-center gap-6 transition-all duration-300 hover:-translate-y-1"
     >
-      <span className="flex h-28 w-28 items-center justify-center text-white/85 transition-colors duration-300 group-hover:text-[#E61C38]">
+      {/* Icon — white at rest, hover stays white (matches screenshot) */}
+      <span className="flex items-end justify-center text-white/80 transition-colors duration-300 group-hover:text-white">
         {icon}
       </span>
-      <span className="text-sm font-medium tracking-wide text-white/55 transition-colors group-hover:text-white">
+      {/* Label */}
+      <span className="text-sm font-normal tracking-wide text-white/60 transition-colors duration-300 group-hover:text-white/90">
         {label}
       </span>
     </button>

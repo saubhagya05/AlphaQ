@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import {
   Area,
   AreaChart,
@@ -7,8 +8,14 @@ import {
   YAxis,
 } from 'recharts'
 
-// Emotional curve across the entire plot, beat = episode
-const PLOT_EMOTION_DATA = [
+// Placeholder arc shown until a real series is linked (no backend call made).
+const DEFAULT_EMOTIONS = [
+  { key: 'tension', label: 'Tension' },
+  { key: 'melancholy', label: 'Melancholy' },
+  { key: 'hope', label: 'Hope' },
+]
+
+const DEFAULT_POINTS = [
   { beat: 'E1', tension: 30, melancholy: 45, hope: 20 },
   { beat: 'E2', tension: 48, melancholy: 55, hope: 18 },
   { beat: 'E3', tension: 65, melancholy: 50, hope: 28 },
@@ -16,28 +23,43 @@ const PLOT_EMOTION_DATA = [
   { beat: 'E5', tension: 95, melancholy: 40, hope: 68 },
 ]
 
+// Assigned by position, not by name — the backend picks story-specific
+// emotion labels (e.g. "Betrayal", "Longing"), so colors can't be keyed off
+// fixed English words like "tension"/"hope" anymore.
+const PALETTE = ['#E61C38', '#60a5fa', '#4ade80', '#facc15', '#c084fc']
+
+/**
+ * Renders the top-N tracked emotions across the episode plan.
+ *
+ * Pass `emotions` (list of {key, label}) + `points` (list of {beat, [key]: 0-100})
+ * from the real POCKET_FM `/studio/series/{id}/emotional-curve` response to
+ * chart a live series. With no props, it falls back to illustrative mock data
+ * so existing call sites keep working before a real series is linked.
+ */
 export default function EmotionalCurveChart({
-  data = PLOT_EMOTION_DATA,
+  emotions,
+  points,
   idPrefix = 'plot-curve',
 }) {
+  const series = useMemo(() => {
+    const list = emotions?.length ? emotions : DEFAULT_EMOTIONS
+    return list.map((emotion, i) => ({ ...emotion, color: PALETTE[i % PALETTE.length] }))
+  }, [emotions])
+
+  const data = points?.length ? points : DEFAULT_POINTS
+
   return (
     <div>
       <div className="h-44 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data}>
             <defs>
-              <linearGradient id={`${idPrefix}-tension`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#E61C38" stopOpacity={0.45} />
-                <stop offset="100%" stopColor="#E61C38" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id={`${idPrefix}-melancholy`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.32} />
-                <stop offset="100%" stopColor="#60a5fa" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id={`${idPrefix}-hope`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#4ade80" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="#4ade80" stopOpacity={0} />
-              </linearGradient>
+              {series.map((s) => (
+                <linearGradient key={s.key} id={`${idPrefix}-${s.key}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={s.color} stopOpacity={0.4} />
+                  <stop offset="100%" stopColor={s.color} stopOpacity={0} />
+                </linearGradient>
+              ))}
             </defs>
             <CartesianGrid stroke="#1f1f1f" strokeDasharray="3 3" />
             <XAxis
@@ -48,49 +70,29 @@ export default function EmotionalCurveChart({
               interval={0}
             />
             <YAxis hide domain={[0, 100]} />
-            <Area
-              type="monotone"
-              dataKey="tension"
-              stroke="#E61C38"
-              fill={`url(#${idPrefix}-tension)`}
-              strokeWidth={2.5}
-              dot={{ r: 2.5, fill: '#E61C38', strokeWidth: 0 }}
-              activeDot={false}
-              isAnimationActive
-            />
-            <Area
-              type="monotone"
-              dataKey="melancholy"
-              stroke="#60a5fa"
-              fill={`url(#${idPrefix}-melancholy)`}
-              strokeWidth={2}
-              dot={{ r: 2.5, fill: '#60a5fa', strokeWidth: 0 }}
-              activeDot={false}
-              isAnimationActive
-            />
-            <Area
-              type="monotone"
-              dataKey="hope"
-              stroke="#4ade80"
-              fill={`url(#${idPrefix}-hope)`}
-              strokeWidth={2}
-              dot={{ r: 2.5, fill: '#4ade80', strokeWidth: 0 }}
-              activeDot={false}
-              isAnimationActive
-            />
+            {series.map((s) => (
+              <Area
+                key={s.key}
+                type="monotone"
+                dataKey={s.key}
+                stroke={s.color}
+                fill={`url(#${idPrefix}-${s.key})`}
+                strokeWidth={2.5}
+                dot={{ r: 2.5, fill: s.color, strokeWidth: 0 }}
+                activeDot={false}
+                isAnimationActive
+              />
+            ))}
           </AreaChart>
         </ResponsiveContainer>
       </div>
       <div className="mt-2 flex flex-wrap gap-3 text-[10px] text-neutral-500">
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#E61C38]" /> Tension
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-blue-400" /> Melancholy
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-green-400" /> Hope
-        </span>
+        {series.map((s) => (
+          <span key={s.key} className="inline-flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: s.color }} />
+            {s.label}
+          </span>
+        ))}
       </div>
     </div>
   )

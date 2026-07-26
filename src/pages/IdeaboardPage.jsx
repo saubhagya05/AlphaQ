@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Check, ChevronDown, Pause, Pencil, Play, Sparkles, User, X } from 'lucide-react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, Check, ChevronDown, Loader2, Pause, Pencil, Play, RefreshCw, Sparkles, User, X } from 'lucide-react'
 import PocketLogo from '../components/PocketLogo'
 import GenreRadarChart from '../components/GenreRadarChart'
 import ThemeBarChart, { MakeChangesButton } from '../components/ThemeBarChart'
@@ -8,6 +8,10 @@ import EmotionalCurveChart from '../components/EmotionalCurveChart'
 import IdeaRefiningLoader from '../components/IdeaRefiningLoader'
 import AILoadingScreen from '../AILoadingScreen.jsx'
 import { ROUTES } from '../constants/routes'
+import { useEmotionalCurve } from '../hooks/useEmotionalCurve'
+import { useCharacters } from '../hooks/useCharacters'
+import { portraitUrl, regeneratePortrait } from '../api/pocketfm'
+import CharacterPortrait from '../components/CharacterPortrait'
 
 /* ----------------------------- Mock data ----------------------------- */
 
@@ -107,6 +111,7 @@ const THEME_DESC =
 
 const CHARACTERS = [
   {
+    key: 'meera-kaul',
     name: 'Meera Kaul',
     gender: 'Female',
     role: 'Protagonist · Detective',
@@ -117,6 +122,7 @@ const CHARACTERS = [
       "Once Vardaan's most decorated investigator, Meera was disgraced after a case she cannot fully remember. She returns carrying guilt, insomnia, and an uncanny instinct for patterns others miss.",
   },
   {
+    key: 'kabir-ansari',
     name: 'Kabir Ansari',
     gender: 'Male',
     role: 'Informant',
@@ -127,6 +133,7 @@ const CHARACTERS = [
       "A soft-spoken fixer who trades in secrets across the city's underbelly. Kabir knows more about Meera's lost case than he admits — and his motives shift with every tide.",
   },
   {
+    key: 'dr-reyansh-rao',
     name: 'Dr. Reyansh Rao',
     gender: 'Male',
     role: 'Reclusive Scientist',
@@ -137,6 +144,7 @@ const CHARACTERS = [
       'The inventor of the humming artifacts. Reyansh vanished from public life years ago; his research may be the key to the disappearances — or their cause.',
   },
   {
+    key: 'asha',
     name: 'Asha',
     gender: 'Female',
     role: 'Voice Only',
@@ -569,14 +577,24 @@ function VoicePreview() {
   )
 }
 
-function Avatar({ size = 'md' }) {
+function Avatar({ size = 'md', src = null }) {
   const dim = size === 'lg' ? 'h-20 w-20' : 'h-14 w-14'
   const icon = size === 'lg' ? 'h-9 w-9' : 'h-6 w-6'
-  return (
+  const fallback = (
     <div
       className={`flex ${dim} shrink-0 items-center justify-center rounded-full border border-neutral-800 bg-neutral-900 text-neutral-500`}
     >
       <User className={icon} strokeWidth={1.5} />
+    </div>
+  )
+  if (!src) return fallback
+  return (
+    <div className={`relative ${dim} shrink-0 overflow-hidden rounded-full border border-neutral-800 bg-neutral-900`}>
+      <CharacterPortrait
+        src={src}
+        className={`${dim} rounded-full object-cover`}
+        fallback={fallback}
+      />
     </div>
   )
 }
@@ -589,6 +607,16 @@ const card =
 export default function IdeaboardPage() {
   const { projectId } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  // No project here is linked to a real backend series yet (Write → POCKET_FM
+  // wiring is a separate step) — until then, open the Ideaboard with
+  // `?seriesId=<id>` to preview the live emotional curve for a real series.
+  const seriesId = searchParams.get('seriesId')
+  const emotionalCurve = useEmotionalCurve(seriesId)
+  const charactersData = useCharacters(seriesId)
+  const characters = charactersData.isLive ? charactersData.characters : CHARACTERS
+  const [portraitBust, setPortraitBust] = useState(0)
+  const [regeneratingPortrait, setRegeneratingPortrait] = useState(false)
   const [modal, setModal] = useState(null)
   const [plotVisualise, setPlotVisualise] = useState(false)
   const [storyLine, setStoryLine] = useState(STORY_LINE)
@@ -619,6 +647,23 @@ export default function IdeaboardPage() {
   const applySettingChanges = () => {
     setCommittedSettingText(settingText)
     setEditingSetting(false)
+  }
+
+  const activeCharacterData =
+    activeCharacter !== null ? characters[activeCharacter] : null
+
+  const regenerateActivePortrait = async () => {
+    if (!seriesId || !activeCharacterData) return
+    setRegeneratingPortrait(true)
+    try {
+      await regeneratePortrait(seriesId, activeCharacterData.key)
+      setPortraitBust(Date.now())
+      charactersData.reload()
+    } catch {
+      // The portrait <img> falls back gracefully; nothing further to do here.
+    } finally {
+      setRegeneratingPortrait(false)
+    }
   }
 
   // Refining the whole board → the original carton loader.
@@ -737,20 +782,33 @@ export default function IdeaboardPage() {
                   <CardHeading>Characters</CardHeading>
                 </div>
                 <span className="text-xs text-neutral-600">
-                  {CHARACTERS.length} cast members
+                  {charactersData.isLive && charactersData.loading && !characters.length
+                    ? 'Loading cast…'
+                    : `${characters.length} cast member${characters.length === 1 ? '' : 's'}`}
                 </span>
               </div>
+              {charactersData.error && (
+                <p className="mb-3 text-xs text-red-400">{charactersData.error}</p>
+              )}
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                {CHARACTERS.map((ch, i) => (
+                {characters.map((ch, i) => (
                   <button
-                    key={ch.name}
+                    key={ch.key || ch.name}
                     type="button"
                     onClick={() => setActiveCharacter(i)}
                     className="group relative h-48 w-full overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900 transition-all hover:border-[#E61C38]/60 hover:shadow-[0_0_15px_rgba(230,28,56,0.2)]"
                   >
-                    {/* Placeholder image layer */}
+                    {/* Placeholder image layer — base fill, and fallback while/if the real portrait fails */}
                     <div className="absolute inset-0 bg-gradient-to-br from-neutral-700 to-black opacity-40 group-hover:opacity-50 transition-opacity"></div>
-                    
+
+                    {charactersData.isLive && (
+                      <CharacterPortrait
+                        src={portraitUrl(seriesId, ch.key)}
+                        alt={ch.name}
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                    )}
+
                     {/* Gradient overlay for text readability */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent"></div>
                     
@@ -1033,12 +1091,51 @@ export default function IdeaboardPage() {
           <div className="w-full lg:w-2/3 xl:w-3/5 pt-4">
             <ThemeBarChart />
             <div className="mt-8 border-l border-neutral-800 pl-4">
-              <p className="text-[11px] font-bold tracking-[0.18em] text-neutral-500 uppercase">
-                Emotional Curve · Full Plot
-              </p>
-              <div className="mt-3">
-                <EmotionalCurveChart idPrefix="theme-plot-curve" />
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[11px] font-bold tracking-[0.18em] text-neutral-500 uppercase">
+                  Emotional Curve · Full Plot
+                </p>
+                {emotionalCurve.isLive && (
+                  <button
+                    type="button"
+                    onClick={emotionalCurve.regenerate}
+                    disabled={emotionalCurve.regenerating || emotionalCurve.loading}
+                    className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-wide text-neutral-400 transition-colors hover:text-[#E61C38] disabled:opacity-50"
+                  >
+                    {emotionalCurve.regenerating ? (
+                      <Loader2 className="h-3 w-3 animate-spin" strokeWidth={2.25} />
+                    ) : (
+                      <RefreshCw className="h-3 w-3" strokeWidth={2.25} />
+                    )}
+                    {emotionalCurve.regenerating ? 'Charting…' : 'Regenerate'}
+                  </button>
+                )}
               </div>
+              {emotionalCurve.isLive && emotionalCurve.stale && !emotionalCurve.regenerating && (
+                <p className="mt-2 text-[11px] text-amber-400">
+                  The story changed since this arc was charted — regenerate to refresh it.
+                </p>
+              )}
+              {emotionalCurve.error && (
+                <p className="mt-2 text-[11px] text-red-400">{emotionalCurve.error}</p>
+              )}
+              <div className="mt-3">
+                {emotionalCurve.isLive && emotionalCurve.loading && !emotionalCurve.curve ? (
+                  <div className="flex h-44 w-full items-center justify-center gap-2 text-xs text-neutral-500">
+                    <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
+                    Charting the emotional arc…
+                  </div>
+                ) : (
+                  <EmotionalCurveChart
+                    idPrefix="theme-plot-curve"
+                    emotions={emotionalCurve.curve?.emotions}
+                    points={emotionalCurve.curve?.points}
+                  />
+                )}
+              </div>
+              {emotionalCurve.curve?.summary && (
+                <p className="mt-3 text-xs leading-5 text-neutral-500">{emotionalCurve.curve.summary}</p>
+              )}
             </div>
           </div>
         </div>
@@ -1051,25 +1148,32 @@ export default function IdeaboardPage() {
         tall
         leaveChatBar
       >
-        {activeCharacter !== null && (
+        {activeCharacter !== null && activeCharacterData && (
           <div>
             <div className="flex items-center gap-4">
-              <Avatar size="lg" />
+              <Avatar
+                size="lg"
+                src={
+                  charactersData.isLive
+                    ? portraitUrl(seriesId, activeCharacterData.key, portraitBust)
+                    : null
+                }
+              />
               <div>
                 <h3 className="text-xl font-bold tracking-tight text-white">
-                  {CHARACTERS[activeCharacter].name}
+                  {activeCharacterData.name}
                 </h3>
                 <p className="mt-0.5 text-sm text-[#E61C38]">
-                  {CHARACTERS[activeCharacter].role}
+                  {activeCharacterData.role}
                 </p>
                 <p className="mt-0.5 text-xs text-neutral-500">
-                  {CHARACTERS[activeCharacter].gender}
+                  {activeCharacterData.gender}
                 </p>
               </div>
             </div>
 
             <div className="mt-5 flex flex-wrap gap-2">
-              {CHARACTERS[activeCharacter].traits.map((trait) => (
+              {activeCharacterData.traits.map((trait) => (
                 <span
                   key={trait}
                   className="rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1 text-xs font-medium text-neutral-300"
@@ -1079,12 +1183,40 @@ export default function IdeaboardPage() {
               ))}
             </div>
 
+            {charactersData.isLive && (
+              <div className="mt-5 border-t border-neutral-800 pt-5">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs font-bold tracking-widest text-neutral-500 uppercase">
+                    Portrait
+                  </p>
+                  <button
+                    type="button"
+                    onClick={regenerateActivePortrait}
+                    disabled={regeneratingPortrait}
+                    className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-wide text-neutral-400 transition-colors hover:text-[#E61C38] disabled:opacity-50"
+                  >
+                    {regeneratingPortrait ? (
+                      <Loader2 className="h-3 w-3 animate-spin" strokeWidth={2.25} />
+                    ) : (
+                      <RefreshCw className="h-3 w-3" strokeWidth={2.25} />
+                    )}
+                    {regeneratingPortrait ? 'Rendering…' : 'Regenerate'}
+                  </button>
+                </div>
+                {activeCharacterData.portraitStale && !regeneratingPortrait && (
+                  <p className="mt-2 text-[11px] text-amber-400">
+                    This character changed since the portrait was rendered — regenerate for an updated likeness.
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="mt-5 border-t border-neutral-800 pt-5">
               <p className="text-xs font-bold tracking-widest text-neutral-500 uppercase">
                 Physical Persona
               </p>
               <p className="mt-2 text-sm leading-6 text-neutral-300">
-                {CHARACTERS[activeCharacter].persona}
+                {activeCharacterData.persona}
               </p>
             </div>
 
@@ -1093,7 +1225,7 @@ export default function IdeaboardPage() {
                 Backstory
               </p>
               <p className="mt-2 text-sm leading-6 text-neutral-300">
-                {CHARACTERS[activeCharacter].backstory}
+                {activeCharacterData.backstory}
               </p>
             </div>
 
